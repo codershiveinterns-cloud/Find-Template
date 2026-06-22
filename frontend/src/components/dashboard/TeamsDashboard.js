@@ -26,17 +26,22 @@ import {
 } from '@/lib/api/teams';
 import { getApiError } from '@/lib/api/client';
 import { notifyError, notifySuccess } from '@/lib/notify';
+import { PLAN_ACCESS } from '@/lib/constants/packages';
+import { dashboardMenu } from '@/lib/constants/routes';
 
 const roleOptions = [
   { label: 'Developer', value: 'developer' },
   { label: 'Designer', value: 'designer' },
+  { label: 'Manager', value: 'manager' },
 ];
 
 const roleConfig = {
   developer: { color: '#0891b2', bg: '#ecfeff', border: 'rgba(34,211,238,0.3)', label: 'Developer' },
   designer: { color: '#7c3aed', bg: '#f5f3ff', border: 'rgba(124,58,237,0.3)', label: 'Designer' },
+  manager: { color: '#d97706', bg: '#fffbeb', border: 'rgba(217,119,6,0.3)', label: 'Manager' },
 };
 
+const moduleLabelMap = dashboardMenu.reduce((acc, item) => ({ ...acc, [item.key]: item.label }), {});
 const normalizeProjectIds = (projects = []) => projects.map((project) => (typeof project === 'string' ? project : project?._id)).filter(Boolean);
 
 export default function TeamsDashboard() {
@@ -51,18 +56,37 @@ export default function TeamsDashboard() {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
-  const companyEmail = profile?.companyEmail || profile?.email || '';
+  const loginEmail = profile?.ownerEmail || profile?.loginEmail || profile?.email || '';
+  const companyEmail = profile?.companyEmail || '';
+  const isBusinessAccount = profile?.accountType === 'company_business';
+  const selectedRole = Form.useWatch('role', form);
+  const isManagerRole = selectedRole === 'manager';
+  const isAdmin = profile?.role === 'admin';
+
+  const managerModuleOptions = useMemo(() => {
+    const allowedKeys = PLAN_ACCESS[profile?.selectedPackage || 'none'] || PLAN_ACCESS.none;
+    return dashboardMenu
+      .filter((item) => allowedKeys.includes(item.key))
+      .map((item) => ({ label: item.label, value: item.key }));
+  }, [profile?.selectedPackage]);
+
+  const managerModuleKeys = useMemo(() => managerModuleOptions.map((item) => item.value), [managerModuleOptions]);
 
   const loadData = async () => {
     try {
-      const [membersRes, projectsRes, profileRes] = await Promise.all([
-        getTeamMembers(),
-        getProjects(),
-        getMe(),
-      ]);
+      const profileRes = await getMe();
+      const currentProfile = profileRes.data || null;
+      setProfile(currentProfile);
+
+      const membersRes = await getTeamMembers();
       setMembers(Array.isArray(membersRes.data) ? membersRes.data : []);
-      setProjects(Array.isArray(projectsRes.data) ? projectsRes.data : []);
-      setProfile(profileRes.data || null);
+
+      if (currentProfile?.role === 'admin') {
+        const projectsRes = await getProjects();
+        setProjects(Array.isArray(projectsRes.data) ? projectsRes.data : []);
+      } else {
+        setProjects([]);
+      }
     } catch (error) {
       notifyError('Teams Load Failed', getApiError(error));
     }
@@ -76,6 +100,7 @@ export default function TeamsDashboard() {
     total: members.length,
     developer: members.filter((member) => member.role === 'developer').length,
     designer: members.filter((member) => member.role === 'designer').length,
+    manager: members.filter((member) => member.role === 'manager').length,
   }), [members]);
 
   const filteredMembers = filter === 'all' ? members : members.filter((member) => member.role === filter);
@@ -88,22 +113,26 @@ export default function TeamsDashboard() {
       form.setFieldsValue({
         name: editingMember.name,
         email: editingMember.email,
+        loginEmail: editingMember.loginEmail || loginEmail,
         companyEmail: editingMember.companyEmail || companyEmail,
         role: editingMember.role,
         assignedProjects: normalizeProjectIds(editingMember.assignedProjects),
         assignedProjectModule: !!editingMember.assignedProjectModule,
+        assignedModules: (editingMember.assignedModules || []).filter((moduleKey) => managerModuleKeys.includes(moduleKey)),
         password: '',
       });
       return;
     }
 
     form.setFieldsValue({
+      loginEmail,
       companyEmail,
       role: 'developer',
       assignedProjects: [],
       assignedProjectModule: true,
+      assignedModules: [],
     });
-  }, [companyEmail, editingMember, form, open]);
+  }, [companyEmail, editingMember, form, loginEmail, managerModuleKeys, open]);
 
   const openCreateForm = () => {
     setEditingMember(null);
@@ -122,8 +151,9 @@ export default function TeamsDashboard() {
         name: values.name,
         email: values.email,
         role: values.role,
-        assignedProjects: values.assignedProjects || [],
-        assignedProjectModule: !!values.assignedProjectModule,
+        assignedProjects: values.role === 'manager' ? [] : values.assignedProjects || [],
+        assignedProjectModule: values.role === 'manager' ? false : !!values.assignedProjectModule,
+        assignedModules: values.role === 'manager' ? values.assignedModules || [] : [],
       };
 
       if (values.password) {
@@ -182,15 +212,19 @@ export default function TeamsDashboard() {
       ),
     },
     {
-      title: 'Email',
+      title: 'Member Email',
       dataIndex: 'email',
       key: 'email',
       render: (email) => <span className="team-email-cell"><MailOutlined /> {email}</span>,
     },
     {
-      title: 'Assigned Projects',
-      key: 'assignedProjects',
+      title: 'Assignments',
+      key: 'assignments',
       render: (_, record) => {
+        if (record.role === 'manager') {
+          const count = record.assignedModules?.length || 0;
+          return <Tag className="team-count-tag">{count} Modules</Tag>;
+        }
         const count = record.assignedProjectsCount ?? record.assignedProjects?.length ?? 0;
         return <Tag className="team-count-tag">{count} Projects</Tag>;
       },
@@ -226,18 +260,22 @@ export default function TeamsDashboard() {
           <Tooltip title="View Details">
             <Button className="proj-action-btn" icon={<EyeOutlined />} onClick={() => openViewMember(record)} />
           </Tooltip>
-          <Tooltip title="Edit Member">
-            <Button className="proj-action-btn" icon={<EditOutlined />} onClick={() => openEditForm(record)} />
-          </Tooltip>
-          <Popconfirm
-            title="Delete team member?"
-            description="This will remove this member account."
-            okText="Delete"
-            cancelText="Cancel"
-            onConfirm={() => removeMember(record)}
-          >
-            <Button className="proj-action-btn proj-delete-btn" icon={<DeleteOutlined />} danger />
-          </Popconfirm>
+          {isAdmin && (
+            <>
+              <Tooltip title="Edit Member">
+                <Button className="proj-action-btn" icon={<EditOutlined />} onClick={() => openEditForm(record)} />
+              </Tooltip>
+              <Popconfirm
+                title="Delete team member?"
+                description="This will remove this member account."
+                okText="Delete"
+                cancelText="Cancel"
+                onConfirm={() => removeMember(record)}
+              >
+                <Button className="proj-action-btn proj-delete-btn" icon={<DeleteOutlined />} danger />
+              </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -247,6 +285,7 @@ export default function TeamsDashboard() {
     { key: 'all', label: 'Team Members', icon: <TeamOutlined />, value: stats.total, theme: 'blue' },
     { key: 'developer', label: 'Developers', icon: <ProjectOutlined />, value: stats.developer, theme: 'cyan' },
     { key: 'designer', label: 'Designers', icon: <UserOutlined />, value: stats.designer, theme: 'purple' },
+    { key: 'manager', label: 'Managers', icon: <TeamOutlined />, value: stats.manager, theme: 'amber' },
   ];
 
   return (
@@ -263,21 +302,23 @@ export default function TeamsDashboard() {
               Register your team with <span className="text-gradient">premium control.</span>
             </h1>
             <p className="proj-hero-subtitle">
-              Create developer and designer accounts, assign projects, and control the exact workspace module they can access.
+              Create developer, designer, and manager accounts with role-based login and package-based module access.
             </p>
           </div>
-          <div className="proj-hero-right">
-            <button type="button" className="proj-hero-add-btn" onClick={openCreateForm}>
-              <PlusOutlined /> Register Team Member
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="proj-hero-right">
+              <button type="button" className="proj-hero-add-btn" onClick={openCreateForm}>
+                <PlusOutlined /> Register Team Member
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="proj-stats-section">
         <Row gutter={[16, 16]}>
           {statCards.map((item) => (
-            <Col xs={24} md={8} key={item.key}>
+            <Col xs={24} md={6} key={item.key}>
               <div
                 className={`proj-stat-card proj-stat-${item.theme}`}
                 style={{ cursor: 'pointer' }}
@@ -342,14 +383,14 @@ export default function TeamsDashboard() {
         <div className="proj-modal-header">
           <span className="proj-modal-badge"><TeamOutlined /> {editingMember ? 'Edit Team Member' : 'Register Team Member'}</span>
           <h2>{editingMember ? 'Update member account' : 'Create a team login account'}</h2>
-          <p>Assign projects, choose role, and create login access for your company workspace.</p>
+          <p>Member login uses the admin/owner email, selected role, and the member password.</p>
         </div>
         <Form form={form} layout="vertical" onFinish={submitMember} requiredMark={false}>
           <div className="payment-two-col">
             <Form.Item name="name" label="Team Member Name" rules={[{ required: true, message: 'Member name is required' }]}>
               <Input size="large" placeholder="Enter member name" />
             </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
+            <Form.Item name="email" label="Member Contact Email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
               <Input size="large" placeholder="member@example.com" />
             </Form.Item>
           </div>
@@ -359,27 +400,44 @@ export default function TeamsDashboard() {
             </Form.Item>
             <Form.Item
               name="password"
-              label={editingMember ? 'New Password' : 'Password'}
+              label={editingMember ? 'New Password' : 'Member Password'}
               rules={editingMember ? [] : [{ required: true, message: 'Password is required' }, { min: 8, message: 'Password must be at least 8 characters' }]}
             >
-              <Input.Password size="large" placeholder={editingMember ? 'Leave blank to keep current password' : 'Create password'} />
+              <Input.Password size="large" placeholder={editingMember ? 'Leave blank to keep current password' : 'Create member password'} />
             </Form.Item>
           </div>
-          <Form.Item name="companyEmail" label="Company Email">
-            <Input size="large" disabled placeholder="Company email" />
+          <Form.Item name="loginEmail" label="Admin / Owner Login Email">
+            <Input size="large" disabled placeholder="Admin login email" />
           </Form.Item>
-          <Form.Item name="assignedProjects" label="Assign Projects">
-            <Checkbox.Group className="team-project-checkbox-grid">
-              {projects.map((project) => (
-                <Checkbox value={project._id} key={project._id}>
-                  {project.name}
-                </Checkbox>
-              ))}
-            </Checkbox.Group>
-          </Form.Item>
-          <Form.Item name="assignedProjectModule" valuePropName="checked" className="team-module-checkbox">
-            <Checkbox>Assign Project Module — member will see only assigned Projects after login</Checkbox>
-          </Form.Item>
+          {isBusinessAccount && (
+            <Form.Item name="companyEmail" label="Company Email">
+              <Input size="large" disabled placeholder="Company email" />
+            </Form.Item>
+          )}
+          {isManagerRole ? (
+            <Form.Item
+              name="assignedModules"
+              label="Assign Module"
+              rules={[{ required: true, message: 'Assign at least one module' }]}
+            >
+              <Checkbox.Group className="team-project-checkbox-grid" options={managerModuleOptions} />
+            </Form.Item>
+          ) : (
+            <>
+              <Form.Item name="assignedProjects" label="Assign Projects">
+                <Checkbox.Group className="team-project-checkbox-grid">
+                  {projects.map((project) => (
+                    <Checkbox value={project._id} key={project._id}>
+                      {project.name}
+                    </Checkbox>
+                  ))}
+                </Checkbox.Group>
+              </Form.Item>
+              <Form.Item name="assignedProjectModule" valuePropName="checked" className="team-module-checkbox">
+                <Checkbox>Assign Project Module — member will see only assigned Projects after login</Checkbox>
+              </Form.Item>
+            </>
+          )}
           <Button type="primary" htmlType="submit" className="proj-submit-btn" loading={loading} block>
             {editingMember ? 'Save Member' : 'Register Member'} <ArrowRightOutlined />
           </Button>
@@ -398,7 +456,7 @@ export default function TeamsDashboard() {
         <div className="proj-modal-header">
           <span className="proj-modal-badge"><EyeOutlined /> Member Details</span>
           <h2>{viewMember?.name || 'Team Member'}</h2>
-          <p>Complete registered account and assigned project details.</p>
+          <p>Complete registered account and assigned access details.</p>
         </div>
         {viewMember && (
           <div className="team-view-grid">
@@ -409,38 +467,59 @@ export default function TeamsDashboard() {
             </div>
             <div className="team-view-item">
               <span><MailOutlined /></span>
-              <small>Email</small>
+              <small>Member Contact Email</small>
               <strong>{viewMember.email}</strong>
             </div>
             <div className="team-view-item">
               <span><MailOutlined /></span>
-              <small>Company Email</small>
-              <strong>{viewMember.companyEmail || 'Not available'}</strong>
+              <small>Login Email</small>
+              <strong>{viewMember.loginEmail || loginEmail || 'Not available'}</strong>
             </div>
+            {viewMember.accountType === 'company_business' && (
+              <div className="team-view-item">
+                <span><MailOutlined /></span>
+                <small>Company Email</small>
+                <strong>{viewMember.companyEmail || 'Not available'}</strong>
+              </div>
+            )}
             <div className="team-view-item">
               <span><TeamOutlined /></span>
               <small>Role</small>
               <strong>{roleConfig[viewMember.role]?.label || viewMember.role}</strong>
-            </div>
-            <div className="team-view-item">
-              <span><ProjectOutlined /></span>
-              <small>Assigned Project Module</small>
-              <strong>{viewMember.assignedProjectModule ? 'Enabled' : 'Disabled'}</strong>
             </div>
             <div className="team-view-item team-password-item">
               <span><LockOutlined /></span>
               <small>Password</small>
               <strong>{viewMember.plainPass || 'Not available'}</strong>
             </div>
-            <div className="team-view-item team-view-projects">
-              <span><ProjectOutlined /></span>
-              <small>Assigned Projects</small>
-              <div className="team-view-project-list">
-                {viewMember.assignedProjects?.length ? viewMember.assignedProjects.map((project) => (
-                  <Tag key={project._id || project} className="team-count-tag">{project.name || project}</Tag>
-                )) : <strong>No projects assigned</strong>}
+            {viewMember.role === 'manager' ? (
+              <div className="team-view-item team-view-projects">
+                <span><ProjectOutlined /></span>
+                <small>Assigned Modules</small>
+                <div className="team-view-project-list">
+                  {viewMember.assignedModules?.length ? viewMember.assignedModules.map((module) => (
+                    <Tag key={module} className="team-count-tag">{moduleLabelMap[module] || module}</Tag>
+                  )) : <strong>No modules assigned</strong>}
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="team-view-item">
+                  <span><ProjectOutlined /></span>
+                  <small>Assigned Project Module</small>
+                  <strong>{viewMember.assignedProjectModule ? 'Enabled' : 'Disabled'}</strong>
+                </div>
+                <div className="team-view-item team-view-projects">
+                  <span><ProjectOutlined /></span>
+                  <small>Assigned Projects</small>
+                  <div className="team-view-project-list">
+                    {viewMember.assignedProjects?.length ? viewMember.assignedProjects.map((project) => (
+                      <Tag key={project._id || project} className="team-count-tag">{project.name || project}</Tag>
+                    )) : <strong>No projects assigned</strong>}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </Modal>

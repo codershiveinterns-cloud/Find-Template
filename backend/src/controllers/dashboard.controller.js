@@ -5,27 +5,24 @@ import { Service } from '../models/Service.js';
 import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const ownerFilter = (req) => ({ ownerId: req.user._id });
+const effectiveOwnerId = (req) => (req.user.role === 'admin' || req.user.isOwner ? req.user._id : req.user.ownerId);
+const ownerFilter = (req) => ({ ownerId: effectiveOwnerId(req) });
 
 export const getOverview = asyncHandler(async (req, res) => {
   const filter = ownerFilter(req);
-  const [projects, teams, projectClients, invoices, services, revenueResult] = await Promise.all([
+  const [projects, teams, clients, invoices, services, revenueResult] = await Promise.all([
     Project.countDocuments(filter),
-    User.countDocuments({ ownerId: req.user._id, role: { $in: ['developer', 'designer'] } }),
-    Project.aggregate([
-      { $match: { ownerId: req.user._id, clientName: { $exists: true, $ne: '' } } },
-      { $group: { _id: { $toLower: { $trim: { input: '$clientName' } } } } },
-      { $count: 'total' },
-    ]),
+    User.countDocuments({ ownerId: effectiveOwnerId(req), role: { $in: ['developer', 'designer', 'manager'] } }),
+    Client.countDocuments(filter),
     Invoice.countDocuments(filter),
     Service.countDocuments(filter),
     Project.aggregate([
-      { $match: { ownerId: req.user._id } },
+      { $match: { ownerId: effectiveOwnerId(req) } },
       { $group: { _id: null, total: { $sum: '$budget' } } },
     ]),
   ]);
 
-  const clients = projectClients.length > 0 ? projectClients[0].total : 0;
+
   const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
   return res.json({
@@ -66,7 +63,7 @@ export const getProjects = asyncHandler(async (req, res) => {
 });
 
 export const getTeams = asyncHandler(async (req, res) => {
-  const data = await User.find({ ownerId: req.user._id, role: { $in: ['developer', 'designer'] } })
+  const data = await User.find({ ownerId: effectiveOwnerId(req), role: { $in: ['developer', 'designer', 'manager'] } })
     .sort({ createdAt: -1 })
     .populate('assignedProjects', 'name status templateKey templateName templateType');
   return res.json({ success: true, message: 'Teams fetched successfully', data });

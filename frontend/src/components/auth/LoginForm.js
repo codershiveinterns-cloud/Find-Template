@@ -14,6 +14,8 @@ export default function LoginForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [accountType, setAccountType] = useState('freelancer_individual');
+  const [role, setRole] = useState('admin');
+  const isTeamRole = role !== 'admin';
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -32,23 +34,28 @@ export default function LoginForm() {
     <Card className="auth-card">
       <Typography.Title level={2} style={{ marginTop: 0, letterSpacing: '-0.04em' }}>Login</Typography.Title>
       <Typography.Paragraph type="secondary">Enter your details to open your protected dashboard.</Typography.Paragraph>
+      {isTeamRole && (
+        <Typography.Paragraph type="secondary">
+          Team accounts use the admin / owner email with the member password and selected role.
+        </Typography.Paragraph>
+      )}
       <Form layout="vertical" initialValues={{ accountType, role: 'admin' }} onFinish={onFinish} requiredMark={false}>
         <Form.Item name="accountType" label="Select Account" rules={[{ required: true }]}>
           <Select size="large" options={ACCOUNT_TYPES} onChange={setAccountType} />
         </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
-          <Input size="large" placeholder="admin@example.com" />
+        <Form.Item name="email" label={isTeamRole ? 'Admin / Owner Email' : 'Email'} rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
+          <Input size="large" placeholder={isTeamRole ? 'admin@example.com' : 'you@example.com'} />
         </Form.Item>
         {accountType === 'company_business' && (
           <Form.Item name="companyEmail" label="Company Email" rules={[{ required: true, type: 'email', message: 'Valid company email is required' }]}>
             <Input size="large" placeholder="company@example.com" />
           </Form.Item>
         )}
-        <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Password is required' }]}>
-          <Input.Password size="large" placeholder="Password" />
+        <Form.Item name="password" label={isTeamRole ? 'Member Password' : 'Password'} rules={[{ required: true, message: 'Password is required' }]}>
+          <Input.Password size="large" placeholder={isTeamRole ? 'Member password' : 'Password'} />
         </Form.Item>
         <Form.Item name="role" label="Select Role" rules={[{ required: true }]}>
-          <Select size="large" options={LOGIN_ROLES} />
+          <Select size="large" options={LOGIN_ROLES} onChange={setRole} />
         </Form.Item>
         <Button className="auth-submit-btn" type="primary" htmlType="submit" loading={loading} block size="large" icon={<ArrowRightOutlined />}>Login</Button>
       </Form>

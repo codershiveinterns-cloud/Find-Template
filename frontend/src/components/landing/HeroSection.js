@@ -17,7 +17,7 @@ export default function HeroSection() {
           <span className="hero-badge"><CheckCircleOutlined /> Premium project management system</span>
           <h1>Build your brand. <span className="text-gradient">Manage your future.</span></h1>
           <p>
-            FindTemplates brings your projects, team, clients, services, access roles, and USD invoices into one premium dashboard — designed for freelancers, companies, and growing digital teams.
+            FindTemplates brings your projects, team, clients, services, and USD invoices into one premium dashboard — designed for freelancers, companies, and growing digital teams.
           </p>
           <div className="hero-actions">
             <Link href="/auth/signup" className="premium-btn-dark">Free Trial <ArrowRightOutlined /></Link>
@@ -30,7 +30,7 @@ export default function HeroSection() {
           </div>
           <div className="floating-card">
             <strong>Premium workspace</strong>
-            <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>A clean base for templates, projects, roles, services, and business growth.</p>
+            <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>A clean base for templates, projects, services, and business growth.</p>
           </div>
         </div>
       </div>

@@ -11,9 +11,31 @@ export const PLAN_LABELS = {
 
 export const PLAN_ACCESS = {
   none: ['overview', 'services'],
-  plus: ['overview', 'projects', 'access-and-role', 'services', 'settings', 'support-info'],
-  pro: ['overview', 'projects', 'teams', 'access-and-role', 'services', 'settings', 'support-info'],
-  business: ['overview', 'projects', 'teams', 'clients', 'invoices', 'access-and-role', 'services', 'settings', 'support-info'],
+  plus: ['overview', 'projects', 'services', 'settings', 'support-info'],
+  pro: ['overview', 'projects', 'teams', 'services', 'settings', 'support-info'],
+  business: ['overview', 'projects', 'teams', 'clients', 'invoices', 'services', 'settings', 'support-info'],
+};
+
+export const PLAN_TEMPLATE_LIMITS = {
+  plus: 1,
+  pro: 4,
+  business: 8,
+};
+
+export const isPackageActive = (user) => Boolean(user?.selectedPackage && user?.selectedPackageExpiresAt && new Date(user.selectedPackageExpiresAt).getTime() > Date.now());
+
+export const getTemplateUsage = (user) => {
+  const limit = PLAN_TEMPLATE_LIMITS[user?.selectedPackage] || 0;
+  const used = new Set((user?.purchasedTemplates || []).map((template) => template.templateKey)).size;
+  return { used, limit, reached: limit > 0 && used >= limit };
+};
+
+export const formatPackageExpiry = (value) => {
+  if (!value) return 'No active package expiry';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No active package expiry';
+  const formatted = date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  return date.getTime() <= Date.now() ? `Expired at ${formatted}` : formatted;
 };
 
 export const SERVICE_PLANS = [
@@ -22,7 +44,7 @@ export const SERVICE_PLANS = [
     name: 'Plus',
     monthly: 199,
     yearly: 1910.4,
-    included: ['Projects page', 'Settings page', 'Support info page', 'Access / Role page', 'Service page', 'Access 1 template'],
+    included: ['Projects page', 'Settings page', 'Support info page', 'Service page', 'Access 1 template'],
     excluded: ['Invoice page', 'Teams page', 'Clients page'],
   },
   {
@@ -30,7 +52,7 @@ export const SERVICE_PLANS = [
     name: 'Pro',
     monthly: 299,
     yearly: 2870.4,
-    included: ['Projects page', 'Settings page', 'Support info page', 'Access / Role page', 'Service page', 'Access 4 templates', 'Teams page'],
+    included: ['Projects page', 'Settings page', 'Support info page', 'Service page', 'Access 4 templates', 'Teams page'],
     excluded: ['Clients page'],
     highlighted: true,
   },
@@ -39,7 +61,7 @@ export const SERVICE_PLANS = [
     name: 'Business',
     monthly: 399,
     yearly: 3830.4,
-    included: ['Projects page', 'Settings page', 'Support info page', 'Access / Role page', 'Service page', 'Invoice page', 'Teams page', 'Clients page', 'Access 8 templates', 'Priority support facility'],
+    included: ['Projects page', 'Settings page', 'Support info page', 'Service page', 'Invoice page', 'Teams page', 'Clients page', 'Access 8 templates', 'Priority support facility'],
     excluded: [],
     popular: true,
   },

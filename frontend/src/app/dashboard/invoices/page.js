@@ -1,5 +1,5 @@
-import CollectionPage from '@/components/dashboard/CollectionPage';
+import InvoicesDashboard from '@/components/dashboard/InvoicesDashboard';
 
 export default function InvoicesPage() {
-  return <CollectionPage title="Invoices" resource="invoices" description="Invoice records and USD amounts will appear here from MongoDB." />;
+  return <InvoicesDashboard />;
 }

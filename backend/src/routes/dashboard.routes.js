@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { getOverview, getChartData } from '../controllers/dashboard.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
-import { requireRole } from '../middleware/role.middleware.js';
+import { requireModuleAccess } from '../middleware/role.middleware.js';
 
 const router = Router();
 
-router.use(requireAuth, requireRole('admin'));
-router.get('/overview', getOverview);
-router.get('/chart-data', getChartData);
+router.use(requireAuth);
+router.get('/overview', requireModuleAccess('overview'), getOverview);
+router.get('/chart-data', requireModuleAccess('overview'), getChartData);
 
 export default router;

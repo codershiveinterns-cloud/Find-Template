@@ -2,21 +2,17 @@
 node_modules/
 **/node_modules/
 
-# Environment variables
+# Environment variables / secrets
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
-
-# Next.js
-.next/
-out/
-frontend/.next/
-frontend/out/
-
-# Build output
-dist/
-build/
-coverage/
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Logs
 logs/
@@ -26,13 +22,25 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Runtime / cache
+# Runtime / build output
+dist/
+build/
+coverage/
 .cache/
 .tmp/
 tmp/
-*.pid
-*.seed
-*.pid.lock
+.next/
+out/
+**/.next/
+**/out/
+
+# Package manager cache
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
 
 # OS / editor
 .DS_Store
@@ -40,5 +48,12 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Local Claude/session files
+# Local tools / deploy state
 .claude/
+.vercel/
+.netlify/
+
+# Misc local files
+*.pid
+*.seed
+*.pid.lock

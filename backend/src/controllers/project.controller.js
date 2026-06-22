@@ -1,6 +1,7 @@
 import { Project } from '../models/Project.js';
 import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { getTemplateLimitMessage, hasPurchasedTemplate, isPackageActive } from '../utils/packageRules.js';
 
 const effectiveOwnerId = (req) => {
   if (req.user.role === 'admin' || req.user.isOwner) return req.user._id;
@@ -21,7 +22,7 @@ const projectAccessFilter = (req) => {
 
 const teamMemberFilter = (req) => ({
   ownerId: effectiveOwnerId(req),
-  role: { $in: ['developer', 'designer'] },
+  role: { $in: ['developer', 'designer', 'manager'] },
 });
 
 const serializeProject = (project, assignedMembers = []) => ({
@@ -29,6 +30,20 @@ const serializeProject = (project, assignedMembers = []) => ({
   assignedMembers,
   assignedMembersCount: assignedMembers.length,
 });
+
+const validateProjectTemplateAccess = (req) => {
+  if (!req.body.templateKey) return null;
+
+  if (!isPackageActive(req.user)) {
+    return getTemplateLimitMessage(req.user);
+  }
+
+  if (!hasPurchasedTemplate(req.user, req.body.templateKey)) {
+    return 'This project template is not included in your purchased templates. Please add this template first or update your plan.';
+  }
+
+  return null;
+};
 
 export const listProjects = asyncHandler(async (req, res) => {
   const projects = await Project.find(projectAccessFilter(req)).sort({ createdAt: -1 });
@@ -48,6 +63,11 @@ export const listProjects = asyncHandler(async (req, res) => {
 });
 
 export const createProject = asyncHandler(async (req, res) => {
+  const templateAccessError = validateProjectTemplateAccess(req);
+  if (templateAccessError) {
+    return res.status(403).json({ success: false, message: templateAccessError });
+  }
+
   const project = await Project.create({
     ...req.body,
     startDate: new Date(req.body.startDate),

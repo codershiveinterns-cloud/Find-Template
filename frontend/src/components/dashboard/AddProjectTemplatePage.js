@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { confirmTemplatePayment } from '@/lib/api/projects';
 import { getMe } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
+import { getTemplateUsage, isPackageActive } from '@/lib/constants/packages';
 import { TEMPLATE_CATALOG } from '@/lib/constants/templateCatalog';
 import { notifyError, notifySuccess } from '@/lib/notify';
 
@@ -19,6 +20,7 @@ const paymentMethods = [
 
 export default function AddProjectTemplatePage() {
   const router = useRouter();
+  const [profile, setProfile] = useState(null);
   const [purchasedKeys, setPurchasedKeys] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,7 @@ export default function AddProjectTemplatePage() {
     const loadPurchased = async () => {
       try {
         const response = await getMe();
+        setProfile(response.data || null);
         setPurchasedKeys((response.data?.purchasedTemplates || []).map((template) => template.templateKey));
       } catch (error) {
         notifyError('Templates Load Failed', getApiError(error));
@@ -38,15 +41,31 @@ export default function AddProjectTemplatePage() {
     loadPurchased();
   }, []);
 
+  const packageActive = isPackageActive(profile);
+  const templateUsage = getTemplateUsage(profile);
+  const limitMessage = profile?.selectedPackage
+    ? `Your current plan allows only ${templateUsage.limit} template${templateUsage.limit === 1 ? '' : 's'}. Please update your plan to add more templates.`
+    : 'Please update your plan to add project templates.';
+
   const templates = useMemo(() => TEMPLATE_CATALOG.map((template) => ({
     ...template,
     purchased: purchasedKeys.includes(template.key),
   })), [purchasedKeys]);
 
   const addTemplate = (template) => {
+    if (!packageActive) {
+      notifyError('Update Plan Required', profile?.selectedPackage ? 'Your package has expired. Please update your plan to add or use project templates.' : 'Please update your plan to add project templates.');
+      return;
+    }
+
     if (template.purchased) {
       localStorage.setItem('selectedProjectTemplate', JSON.stringify(template));
       router.push('/dashboard/projects');
+      return;
+    }
+
+    if (templateUsage.reached) {
+      notifyError('Update Plan Required', limitMessage);
       return;
     }
 
@@ -82,7 +101,9 @@ export default function AddProjectTemplatePage() {
         <div className="dashboard-page-heading dashboard-page-heading-center dashboard-pill-only-heading">
           <span>Add Template</span>
         </div>
-        <p className="add-template-tagline">Choose a premium template and attach it to your project workflow.</p>
+        <p className="add-template-tagline">
+          Choose a premium template and attach it to your project workflow. Templates used: {templateUsage.used} / {templateUsage.limit || 0}
+        </p>
       </div>
       <div className="templates-page-grid add-template-grid premium-add-template-grid">
         {templates.map((template) => (

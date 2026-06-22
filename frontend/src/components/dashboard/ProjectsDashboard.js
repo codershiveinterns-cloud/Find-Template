@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getMe } from '@/lib/api/auth';
 import { createProject, deleteProject, getProjects } from '@/lib/api/projects';
 import { getApiError } from '@/lib/api/client';
+import { isPackageActive } from '@/lib/constants/packages';
 import { notifyError, notifySuccess } from '@/lib/notify';
 
 const statusOptions = [
@@ -88,16 +89,23 @@ export default function ProjectsDashboard() {
       if (draft) form.setFieldsValue(JSON.parse(draft));
       if (template) {
         const parsedTemplate = JSON.parse(template);
-        form.setFieldsValue({
-          templateKey: parsedTemplate.key,
-          templateName: parsedTemplate.name,
-          templateType: parsedTemplate.type,
-        });
-        localStorage.removeItem('selectedProjectTemplate');
+        const purchasedKeys = (user?.purchasedTemplates || []).map((item) => item.templateKey);
+
+        if (!isPackageActive(user) || !purchasedKeys.includes(parsedTemplate.key)) {
+          localStorage.removeItem('selectedProjectTemplate');
+          notifyError('Template Not Available', 'Please update your plan or add this template before using it in a project.');
+        } else {
+          form.setFieldsValue({
+            templateKey: parsedTemplate.key,
+            templateName: parsedTemplate.name,
+            templateType: parsedTemplate.type,
+          });
+        }
       }
+      localStorage.removeItem('selectedProjectTemplate');
       setOpen(true);
     }
-  }, [form, isAdmin]);
+  }, [form, isAdmin, user]);
 
   const stats = useMemo(() => ({
     total: projects.length,

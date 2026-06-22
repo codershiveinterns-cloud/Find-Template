@@ -35,7 +35,7 @@ export const loginSchema = z
     accountType,
     email,
     password: z.string().min(1, 'Password is required'),
-    role: z.enum(['admin', 'developer', 'designer']),
+    role: z.enum(['admin', 'developer', 'designer', 'manager']),
     companyEmail: email.optional().nullable(),
   })
   .superRefine((data, ctx) => {

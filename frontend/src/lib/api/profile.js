@@ -15,6 +15,11 @@ export const updatePassword = async (payload) => {
   return data;
 };
 
+export const deleteAccount = async (payload) => {
+  const { data } = await apiClient.delete('/users/account', { data: payload });
+  return data;
+};
+
 export const confirmFakePayment = async (payload) => {
   const { data } = await apiClient.post('/users/fake-payment', payload);
   return data;

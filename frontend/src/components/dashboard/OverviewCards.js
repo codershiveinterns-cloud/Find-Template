@@ -11,8 +11,10 @@ import {
   BarChartOutlined,
 } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
+import { getMe } from '@/lib/api/auth';
 import { getOverview, getChartData } from '@/lib/api/dashboard';
 import { getApiError } from '@/lib/api/client';
+import { getUserAllowedDashboardKeys } from '@/lib/dashboardAccess';
 import { notifyError } from '@/lib/notify';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -160,15 +162,17 @@ export default function OverviewCards() {
     totalRevenue: 0,
   });
   const [chartData, setChartData] = useState([]);
+  const [user, setUser] = useState(null);
   const [chartFilter, setChartFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [overviewRes, chartRes] = await Promise.all([
+        const [overviewRes, chartRes, profileRes] = await Promise.all([
           getOverview(),
           getChartData(),
+          getMe(),
         ]);
         setOverview(
           overviewRes.data || {
@@ -181,6 +185,7 @@ export default function OverviewCards() {
           }
         );
         setChartData(Array.isArray(chartRes.data) ? chartRes.data : []);
+        setUser(profileRes.data || null);
       } catch (error) {
         notifyError('Overview Load Failed', getApiError(error));
       } finally {
@@ -228,6 +233,15 @@ export default function OverviewCards() {
     return filledChartData.filter((item) => item.month === chartFilter);
   }, [filledChartData, chartFilter]);
 
+  const visibleStatItems = useMemo(() => {
+    const allowedKeys = getUserAllowedDashboardKeys(user);
+
+    return statItems.filter((item) => {
+      if (item.key === 'totalRevenue') return allowedKeys.includes('projects');
+      return allowedKeys.includes(item.key);
+    });
+  }, [user]);
+
   if (loading) {
     return (
       <div className="overview-loading">
@@ -263,7 +277,7 @@ export default function OverviewCards() {
           <span>Live Statistics</span>
         </div>
         <div className="overview-stats-grid">
-          {statItems.map((item) => (
+          {visibleStatItems.map((item) => (
             <div className={`overview-stat-card overview-stat-${item.theme}`} key={item.key}>
               <div className="overview-stat-card-inner">
                 <span className={`overview-stat-icon overview-stat-icon-${item.theme}`}>

@@ -8,7 +8,7 @@ import { logoutUser } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
 import { updatePassword, updateProfile } from '@/lib/api/profile';
 import { formatAccountType } from '@/lib/constants/roles';
-import { formatPackage } from '@/lib/constants/packages';
+import { formatPackage, formatPackageExpiry, getTemplateUsage } from '@/lib/constants/packages';
 import { notifyError, notifySuccess } from '@/lib/notify';
 
 export default function ProfileMenu({ user, onProfileUpdated }) {
@@ -51,13 +51,24 @@ export default function ProfileMenu({ user, onProfileUpdated }) {
   };
 
   const isAdmin = user?.role === 'admin';
+  const isCompanyAccount = user?.accountType === 'company_business';
+  const loginEmail = user?.loginEmail || user?.ownerEmail || user?.email;
+  const templateUsage = getTemplateUsage(user);
   const profileDetails = [
     { label: 'Name', value: user?.name || 'Data not available', icon: <UserOutlined /> },
     { label: 'Email', value: user?.email || 'Data not available', icon: <MailOutlined /> },
     { label: 'Account Type', value: formatAccountType(user?.accountType), icon: <ShopOutlined /> },
     { label: 'Role', value: user?.role || 'Data not available', icon: <SafetyCertificateOutlined /> },
-    ...(isAdmin ? [{ label: 'Package', value: formatPackage(user?.selectedPackage, user?.selectedPackageBilling, user?.selectedPackagePrice), icon: <ToolOutlined /> }] : []),
-    { label: 'Company Email', value: user?.companyEmail || 'Data not available', icon: <MailOutlined /> },
+    ...(isAdmin ? [
+      { label: 'Package', value: formatPackage(user?.selectedPackage, user?.selectedPackageBilling, user?.selectedPackagePrice), icon: <ToolOutlined /> },
+      { label: 'Package Expires', value: formatPackageExpiry(user?.selectedPackageExpiresAt), icon: <ToolOutlined /> },
+      { label: 'Templates Used', value: `${templateUsage.used} / ${templateUsage.limit || 0} templates used`, icon: <ToolOutlined /> },
+      ...(isCompanyAccount ? [
+        { label: 'Company Email', value: user?.companyEmail || 'Data not available', icon: <MailOutlined /> },
+      ] : []),
+    ] : [
+      { label: 'Login Email', value: loginEmail || 'Data not available', icon: <MailOutlined /> },
+    ]),
   ];
 
   return (

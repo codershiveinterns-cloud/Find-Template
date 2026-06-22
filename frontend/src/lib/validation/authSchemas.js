@@ -35,7 +35,7 @@ export const loginSchema = z
     accountType: z.enum(['freelancer_individual', 'company_business']),
     email,
     password: z.string().min(1, 'Password is required'),
-    role: z.literal('admin'),
+    role: z.enum(['admin', 'developer', 'designer', 'manager']),
     companyEmail: z.string().optional(),
   })
   .superRefine((data, ctx) => {

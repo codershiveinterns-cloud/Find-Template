@@ -2,21 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Layout, Menu } from 'antd';
+import { Drawer, Layout, Menu } from 'antd';
 import {
   AppstoreOutlined,
   AuditOutlined,
   CustomerServiceOutlined,
   DollarOutlined,
   ProjectOutlined,
-  SafetyCertificateOutlined,
   SettingOutlined,
   TeamOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { dashboardMenu } from '@/lib/constants/routes';
-import { PLAN_ACCESS } from '@/lib/constants/packages';
+import { getUserAllowedDashboardKeys } from '@/lib/dashboardAccess';
 
 const { Sider } = Layout;
 
@@ -26,32 +25,32 @@ const iconMap = {
   teams: <TeamOutlined />,
   clients: <AuditOutlined />,
   invoices: <DollarOutlined />,
-  'access-and-role': <SafetyCertificateOutlined />,
   services: <ToolOutlined />,
   settings: <SettingOutlined />,
   'support-info': <CustomerServiceOutlined />,
 };
 
-export default function DashboardSidebar({ user }) {
+export default function DashboardSidebar({ user, mobileOpen = false, onClose }) {
   const pathname = usePathname();
   const selected = dashboardMenu.find((item) => pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(`${item.path}/`)))?.key || 'overview';
   const [activeKey, setActiveKey] = useState(selected);
-  const allowedKeys = PLAN_ACCESS[user?.selectedPackage || 'none'] || PLAN_ACCESS.none;
 
   const visibleMenu = useMemo(() => {
-    if (user?.role === 'developer' || user?.role === 'designer') {
-      return dashboardMenu.filter((item) => item.key === 'projects');
-    }
-
+    const allowedKeys = getUserAllowedDashboardKeys(user);
     return dashboardMenu.filter((item) => allowedKeys.includes(item.key));
-  }, [allowedKeys, user?.role]);
+  }, [user]);
 
   useEffect(() => {
     setActiveKey(selected);
   }, [selected]);
 
-  return (
-    <Sider className="dashboard-sider" width={292} breakpoint="lg" collapsedWidth="0">
+  const handleMenuClick = ({ key }) => {
+    setActiveKey(key);
+    onClose?.();
+  };
+
+  const sidebarContent = (
+    <>
       <div className="dashboard-logo">
         <span className="dashboard-logo-mark">F</span>
         <div>
@@ -65,13 +64,34 @@ export default function DashboardSidebar({ user }) {
         theme="dark"
         mode="inline"
         selectedKeys={[activeKey]}
-        onClick={({ key }) => setActiveKey(key)}
+        onClick={handleMenuClick}
         items={visibleMenu.map((item) => ({
           key: item.key,
           icon: iconMap[item.key],
           label: <Link href={item.path}>{item.label}</Link>,
         }))}
       />
-    </Sider>
+    </>
+  );
+
+  return (
+    <>
+      <Sider className="dashboard-sider dashboard-sider-desktop" width={292} breakpoint="lg" collapsedWidth="0">
+        {sidebarContent}
+      </Sider>
+      <Drawer
+        title={null}
+        placement="left"
+        open={mobileOpen}
+        onClose={onClose}
+        size={292}
+        className="dashboard-sidebar-drawer"
+        closable={false}
+      >
+        <aside className="dashboard-sider dashboard-sider-mobile">
+          {sidebarContent}
+        </aside>
+      </Drawer>
+    </>
   );
 }

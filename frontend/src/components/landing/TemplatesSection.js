@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import storeImage from '@/assets/images/images/luxury.jpg';
-import photographerImage from '@/assets/images/images/wedding.jpg';
-import startupImage from '@/assets/images/images/tech.jpg';
+import storeImage from '@/assets/images/images/fshion_store.avif';
+import photographerImage from '@/assets/images/images/photography.avif';
+import startupImage from '@/assets/images/images/startup.jpg';
 
 const templates = [
   { title: 'Fashion Store', type: 'Ecommerce', image: storeImage },

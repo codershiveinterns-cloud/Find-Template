@@ -1,4 +1,20 @@
 import mongoose from 'mongoose';
+import { DASHBOARD_MODULE_KEYS } from '../constants/modules.js';
+
+const getPackageExpiryFallback = (billing, activatedAt) => {
+  if (!billing || !activatedAt) return null;
+
+  const expiry = new Date(activatedAt);
+  if (Number.isNaN(expiry.getTime())) return null;
+
+  if (billing === 'yearly') {
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    return expiry;
+  }
+
+  expiry.setMonth(expiry.getMonth() + 1);
+  return expiry;
+};
 
 const userSchema = new mongoose.Schema(
   {
@@ -30,7 +46,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'developer', 'designer'],
+      enum: ['admin', 'developer', 'designer', 'manager'],
       default: 'admin',
       required: true,
     },
@@ -58,6 +74,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    assignedModules: [
+      {
+        type: String,
+        enum: DASHBOARD_MODULE_KEYS,
+      },
+    ],
     companyName: {
       type: String,
       trim: true,
@@ -84,6 +106,10 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
     selectedPackageActivatedAt: {
+      type: Date,
+      default: null,
+    },
+    selectedPackageExpiresAt: {
       type: Date,
       default: null,
     },
@@ -121,6 +147,8 @@ userSchema.index({ ownerId: 1, role: 1 });
 userSchema.index({ companyEmail: 1, role: 1 });
 
 userSchema.methods.toSafeProfile = function () {
+  const selectedPackageExpiresAt = this.selectedPackageExpiresAt || getPackageExpiryFallback(this.selectedPackageBilling, this.selectedPackageActivatedAt);
+
   return {
     id: this._id,
     accountType: this.accountType,
@@ -132,12 +160,14 @@ userSchema.methods.toSafeProfile = function () {
     ownerId: this.ownerId,
     assignedProjects: this.assignedProjects || [],
     assignedProjectModule: this.assignedProjectModule,
+    assignedModules: this.assignedModules || [],
     companyName: this.companyName,
     companyEmail: this.companyEmail,
     selectedPackage: this.selectedPackage,
     selectedPackageBilling: this.selectedPackageBilling,
     selectedPackagePrice: this.selectedPackagePrice,
     selectedPackageActivatedAt: this.selectedPackageActivatedAt,
+    selectedPackageExpiresAt,
     paymentEmail: this.paymentEmail,
     paymentMethod: this.paymentMethod,
     purchasedTemplates: this.purchasedTemplates || [],

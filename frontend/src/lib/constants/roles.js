@@ -8,6 +8,7 @@ export const LOGIN_ROLES = [
   { label: 'Admin', value: 'admin' },
   { label: 'Developer', value: 'developer' },
   { label: 'Designer', value: 'designer' },
+  { label: 'Manager', value: 'manager' },
 ];
 
 export const formatAccountType = (accountType) => {

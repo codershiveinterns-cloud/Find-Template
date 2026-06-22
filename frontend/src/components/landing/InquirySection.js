@@ -38,7 +38,7 @@ export default function InquirySection() {
             <h2 style={{ fontSize: 44, lineHeight: 1.04 }}>Premium support for your digital business.</h2>
             <p style={{ color: '#dbeafe', lineHeight: 1.9 }}>
               Tell us what kind of workspace you want to launch. We can guide you around templates, dashboard access,
-              projects, teams, clients, invoices, roles, services, pricing, and company onboarding.
+              projects, teams, clients, invoices, services, pricing, and company onboarding.
             </p>
             <div className="inquiry-points">
               <span><RocketOutlined /> Fast workspace setup</span>

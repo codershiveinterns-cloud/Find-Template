@@ -1,5 +1,5 @@
-import StaticInfoPage from '@/components/dashboard/StaticInfoPage';
+import SettingsPageClient from '@/components/dashboard/settings/SettingsPageClient';
 
 export default function SettingsPage() {
-  return <StaticInfoPage title="Settings" description="Workspace settings will appear here when saved in the database." />;
+  return <SettingsPageClient />;
 }

@@ -14,14 +14,14 @@ const plans = [
   {
     key: 'plus',
     name: 'Plus',
-    included: ['Projects page', 'Settings page', 'Support info page', 'Access / Role page', 'Service page', 'Access 1 template'],
+    included: ['Projects page', 'Settings page', 'Support info page', 'Service page', 'Access 1 template'],
     excluded: ['Invoice page', 'Teams page', 'Clients page'],
   },
   {
     key: 'pro',
     name: 'Pro',
     highlighted: true,
-    included: ['Projects page', 'Settings page', 'Support info page', 'Access / Role page', 'Service page', 'Access 4 templates', 'Teams page'],
+    included: ['Projects page', 'Settings page', 'Support info page', 'Service page', 'Access 4 templates', 'Teams page'],
     excluded: ['Clients page'],
   },
   {
@@ -30,7 +30,7 @@ const plans = [
     popular: true,
     included: [
       'Projects page and Settings page',
-      'Support info and Access / Role pages',
+      'Support info page',
       'Service page and Invoice page',
       'Teams page and Clients page',
       'Access 8 templates',

@@ -29,3 +29,7 @@ export const updatePasswordSchema = z
     path: ['confirmPassword'],
     message: 'Passwords do not match',
   });
+
+export const deleteAccountSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+});

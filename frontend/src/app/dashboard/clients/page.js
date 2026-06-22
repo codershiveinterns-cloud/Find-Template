@@ -1,5 +1,5 @@
-import CollectionPage from '@/components/dashboard/CollectionPage';
+import ClientsDashboard from '@/components/dashboard/ClientsDashboard';
 
 export default function ClientsPage() {
-  return <CollectionPage title="Clients" resource="clients" description="Client records will appear here from MongoDB." />;
+  return <ClientsDashboard />;
 }

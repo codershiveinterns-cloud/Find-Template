@@ -1,12 +1,18 @@
 'use client';
 
-import { Layout, Spin } from 'antd';
+import { Layout, Result, Spin } from 'antd';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getMe } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
+import {
+  getDashboardKeyFromPath,
+  getFirstAllowedDashboardPath,
+  getUserAllowedDashboardKeys,
+} from '@/lib/dashboardAccess';
 import DashboardSidebar from './DashboardSidebar';
 import DashboardTopbar from './DashboardTopbar';
+import { DashboardUserProvider } from './DashboardUserContext';
 import { notifyError } from '@/lib/notify';
 
 export default function DashboardLayoutClient({ children }) {
@@ -14,19 +20,44 @@ export default function DashboardLayoutClient({ children }) {
   const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [blocked, setBlocked] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const refreshUser = async () => {
+    const response = await getMe();
+    setUser(response.data);
+    return response.data;
+  };
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
+        setBlocked(false);
         const response = await getMe();
-        const role = response.data?.role;
-        if (!['admin', 'developer', 'designer'].includes(role)) {
+        const currentUser = response.data;
+        const role = currentUser?.role;
+        if (!['admin', 'developer', 'designer', 'manager'].includes(role)) {
           router.push('/auth/login');
           return;
         }
-        setUser(response.data);
-        if (role !== 'admin' && !pathname.startsWith('/dashboard/projects')) {
-          router.replace('/dashboard/projects');
+        setUser(currentUser);
+
+        const allowedKeys = getUserAllowedDashboardKeys(currentUser);
+        const currentKey = getDashboardKeyFromPath(pathname);
+        const firstAllowedPath = getFirstAllowedDashboardPath(currentUser);
+
+        if (!allowedKeys.length || !firstAllowedPath) {
+          setBlocked(true);
+          return;
+        }
+
+        if (!currentKey || !allowedKeys.includes(currentKey)) {
+          router.replace(firstAllowedPath);
+          return;
         }
       } catch (error) {
         notifyError('Session Expired', getApiError(error));
@@ -48,12 +79,22 @@ export default function DashboardLayoutClient({ children }) {
   }
 
   return (
-    <Layout className="dashboard-shell">
-      <DashboardSidebar user={user} />
-      <Layout>
-        <DashboardTopbar user={user} onProfileUpdated={setUser} />
-        <main className="dashboard-content">{children}</main>
+    <DashboardUserProvider value={{ user, setUser, refreshUser }}>
+      <Layout className="dashboard-shell">
+        <DashboardSidebar user={user} mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
+        <Layout>
+          <DashboardTopbar user={user} onProfileUpdated={setUser} onMenuClick={() => setMobileSidebarOpen(true)} />
+          <main className="dashboard-content">
+            {blocked ? (
+              <Result
+                status="403"
+                title="No modules assigned"
+                subTitle="Please contact the admin to assign a package module to this account."
+              />
+            ) : children}
+          </main>
+        </Layout>
       </Layout>
-    </Layout>
+    </DashboardUserProvider>
   );
 }

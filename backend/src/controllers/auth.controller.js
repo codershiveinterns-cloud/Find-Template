@@ -2,13 +2,74 @@ import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { signToken } from '../utils/jwt.js';
-import { env } from '../config/env.js';
+import { authCookieOptions } from '../utils/cookieOptions.js';
 
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: 'lax',
-  secure: env.nodeEnv === 'production',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+const teamRoles = ['developer', 'designer', 'manager'];
+
+const serializeAuthUser = async (user) => {
+  const profile = user.toSafeProfile();
+
+  if (user.role === 'admin' || user.isOwner) {
+    return {
+      ...profile,
+      loginEmail: user.email,
+      ownerEmail: user.email,
+    };
+  }
+
+  const owner = await User.findById(user.ownerId);
+  if (!owner) return profile;
+
+  const ownerProfile = owner.toSafeProfile();
+  return {
+    ...profile,
+    companyName: owner.companyName,
+    companyEmail: owner.accountType === 'company_business' ? owner.companyEmail : null,
+    selectedPackage: ownerProfile.selectedPackage,
+    selectedPackageBilling: ownerProfile.selectedPackageBilling,
+    selectedPackagePrice: ownerProfile.selectedPackagePrice,
+    selectedPackageActivatedAt: ownerProfile.selectedPackageActivatedAt,
+    selectedPackageExpiresAt: ownerProfile.selectedPackageExpiresAt,
+    paymentEmail: ownerProfile.paymentEmail,
+    paymentMethod: ownerProfile.paymentMethod,
+    purchasedTemplates: ownerProfile.purchasedTemplates,
+    loginEmail: owner.email,
+    ownerEmail: owner.email,
+  };
+};
+
+const findTeamUserForLogin = async ({ accountType, email, password, role, companyEmail }) => {
+  const owner = await User.findOne({
+    email,
+    accountType,
+    role: 'admin',
+    isOwner: true,
+  });
+
+  if (!owner) return null;
+
+  if (accountType === 'company_business' && owner.companyEmail !== companyEmail) {
+    const error = new Error('Invalid company email');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const candidates = await User.find({
+    ownerId: owner._id,
+    accountType,
+    role,
+    isOwner: false,
+  }).select('+passwordHash');
+
+  const matches = [];
+  for (const candidate of candidates) {
+    if (await comparePassword(password, candidate.passwordHash)) {
+      matches.push(candidate);
+    }
+  }
+
+  if (matches.length !== 1) return null;
+  return matches[0];
 };
 
 export const signup = asyncHandler(async (req, res) => {
@@ -31,8 +92,6 @@ export const signup = asyncHandler(async (req, res) => {
     companyEmail: accountType === 'company_business' ? companyEmail : null,
   });
 
-  console.log("users data",user);
-  
   return res.status(201).json({
     success: true,
     message: 'Account created successfully. Please login.',
@@ -43,21 +102,40 @@ export const signup = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { accountType, email, password, role, companyEmail } = req.body;
 
-  const user = await User.findOne({ email }).select('+passwordHash');
-  if (!user) {
-    return res.status(401).json({ success: false, message: 'Invalid login credentials' });
-  }
+  let user = null;
 
-  if (user.accountType !== accountType || user.role !== role) {
-    return res.status(401).json({ success: false, message: 'Invalid login credentials' });
-  }
+  if (role === 'admin') {
+    user = await User.findOne({ email, accountType, role: 'admin', isOwner: true }).select('+passwordHash');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid login credentials' });
+    }
 
-  if (accountType === 'company_business' && user.companyEmail !== companyEmail) {
-    return res.status(401).json({ success: false, message: 'Invalid company email' });
-  }
+    if (user.accountType !== accountType) {
+      return res.status(401).json({ success: false, message: 'Invalid login credentials' });
+    }
 
-  const isPasswordValid = await comparePassword(password, user.passwordHash);
-  if (!isPasswordValid) {
+    if (accountType === 'company_business' && user.companyEmail !== companyEmail) {
+      return res.status(401).json({ success: false, message: 'Invalid company email' });
+    }
+
+    const isPasswordValid = await comparePassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Invalid login credentials' });
+    }
+  } else if (teamRoles.includes(role)) {
+    try {
+      user = await findTeamUserForLogin({ accountType, email, password, role, companyEmail });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      throw error;
+    }
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid login credentials' });
+    }
+  } else {
     return res.status(401).json({ success: false, message: 'Invalid login credentials' });
   }
 
@@ -65,24 +143,20 @@ export const login = asyncHandler(async (req, res) => {
   await user.save();
 
   const token = signToken({ userId: user._id, role: user.role });
-  res.cookie('nexlance_token', token, cookieOptions);
+  res.cookie('nexlance_token', token, authCookieOptions);
 
   return res.json({
     success: true,
     message: 'Logged in successfully',
-    data: user.toSafeProfile(),
+    data: await serializeAuthUser(user),
   });
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  res.clearCookie('nexlance_token', cookieOptions);
+  res.clearCookie('nexlance_token', authCookieOptions);
   return res.json({ success: true, message: 'Logged out successfully', data: null });
 });
 
 export const me = asyncHandler(async (req, res) => {
-  return res.json({ success: true, message: 'Profile fetched successfully', data: req.user.toSafeProfile() });
+  return res.json({ success: true, message: 'Profile fetched successfully', data: await serializeAuthUser(req.user) });
 });
-
-
-
-

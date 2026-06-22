@@ -1,10 +1,15 @@
 # Dependencies
 node_modules/
+**/node_modules/
 
-# Environment variables
+# Environment variables / secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Next.js
 .next/
@@ -13,8 +18,17 @@ out/
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Build output
+# Build / coverage
 build/
 coverage/
 .cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
