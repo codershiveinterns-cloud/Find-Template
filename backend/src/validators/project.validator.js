@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const projectStatus = z.enum(['in_progress', 'completed', 'pending']);
+const templateText = z.string().trim().max(3000).optional().nullable();
 
 export const projectSchema = z.object({
   name: z.string().trim().min(2, 'Project name is required'),
@@ -16,4 +17,33 @@ export const projectSchema = z.object({
 
 export const projectStatusSchema = z.object({
   status: projectStatus,
+});
+
+export const projectTemplateSchema = z.object({
+  templateContent: z
+    .object({
+      brand: templateText,
+      navHome: templateText,
+      navAbout: templateText,
+      navService: templateText,
+      navContact: templateText,
+      heroHeadline: templateText,
+      heroSubtext: templateText,
+      aboutTitle: templateText,
+      aboutText: templateText,
+      servicesTitle: templateText,
+      serviceOneTitle: templateText,
+      serviceOneText: templateText,
+      serviceTwoTitle: templateText,
+      serviceTwoText: templateText,
+      serviceThreeTitle: templateText,
+      serviceThreeText: templateText,
+      premiumText: templateText,
+      contactTitle: templateText,
+      contactText: templateText,
+    })
+    .partial()
+    .optional()
+    .nullable(),
+  heroImage: z.string().max(2_500_000, 'Image is too large').optional().nullable(),
 });

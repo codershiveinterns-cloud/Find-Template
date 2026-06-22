@@ -18,6 +18,7 @@
     "helmet": "latest",
     "jsonwebtoken": "latest",
     "mongoose": "latest",
+    "nodemailer": "^9.0.1",
     "nodemon": "^3.1.14",
     "zod": "latest"
   }

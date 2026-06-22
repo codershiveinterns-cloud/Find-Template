@@ -38,7 +38,7 @@ const serializeProfile = async (user) => {
     paymentEmail: ownerProfile.paymentEmail,
     paymentMethod: ownerProfile.paymentMethod,
     purchasedTemplates: ownerProfile.purchasedTemplates,
-    loginEmail: owner.email,
+    loginEmail: user.email,
     ownerEmail: owner.email,
   };
 };
@@ -48,7 +48,8 @@ export const getProfile = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-  req.user.name = req.body.name;
+  if (req.body.name !== undefined) req.user.name = req.body.name;
+  if (req.body.themeMode !== undefined) req.user.themeMode = req.body.themeMode;
   await req.user.save();
 
   return res.json({ success: true, message: 'Profile updated successfully', data: await serializeProfile(req.user) });

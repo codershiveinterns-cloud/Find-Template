@@ -1,8 +1,11 @@
+import crypto from 'crypto';
 import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { signToken } from '../utils/jwt.js';
 import { authCookieOptions } from '../utils/cookieOptions.js';
+import { env } from '../config/env.js';
+import { sendPasswordResetOtpEmail } from '../utils/mailer.js';
 
 const teamRoles = ['developer', 'designer', 'manager'];
 
@@ -33,43 +36,53 @@ const serializeAuthUser = async (user) => {
     paymentEmail: ownerProfile.paymentEmail,
     paymentMethod: ownerProfile.paymentMethod,
     purchasedTemplates: ownerProfile.purchasedTemplates,
-    loginEmail: owner.email,
+    loginEmail: user.email,
     ownerEmail: owner.email,
   };
 };
 
-const findTeamUserForLogin = async ({ accountType, email, password, role, companyEmail }) => {
-  const owner = await User.findOne({
+const findTeamUserForLogin = async ({ accountType, email, password, role }) => {
+  const member = await User.findOne({
     email,
-    accountType,
-    role: 'admin',
-    isOwner: true,
-  });
-
-  if (!owner) return null;
-
-  if (accountType === 'company_business' && owner.companyEmail !== companyEmail) {
-    const error = new Error('Invalid company email');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const candidates = await User.find({
-    ownerId: owner._id,
     accountType,
     role,
     isOwner: false,
   }).select('+passwordHash');
 
-  const matches = [];
-  for (const candidate of candidates) {
-    if (await comparePassword(password, candidate.passwordHash)) {
-      matches.push(candidate);
-    }
+  if (!member) return null;
+
+  const isPasswordValid = await comparePassword(password, member.passwordHash);
+  if (!isPasswordValid) return null;
+
+  return member;
+};
+
+const genericOtpMessage = 'If the account exists, an OTP has been sent to the registered email.';
+
+const generateOtp = () => String(crypto.randomInt(100000, 1000000));
+
+const clearPasswordResetFields = (user) => {
+  user.passwordResetOtpHash = null;
+  user.passwordResetOtpExpiresAt = null;
+  user.passwordResetOtpAttempts = 0;
+  user.passwordResetRequestedAt = null;
+};
+
+const resolvePasswordResetUser = async ({ accountType, email, role }, { includeResetHash = false } = {}) => {
+  const selectReset = includeResetHash ? '+passwordResetOtpHash' : '';
+
+  if (role === 'admin') {
+    return User.findOne({ email, accountType, role: 'admin', isOwner: true }).select(selectReset);
   }
 
-  if (matches.length !== 1) return null;
-  return matches[0];
+  if (!teamRoles.includes(role)) return null;
+
+  return User.findOne({
+    email,
+    accountType,
+    role,
+    isOwner: false,
+  }).select(selectReset);
 };
 
 export const signup = asyncHandler(async (req, res) => {
@@ -100,7 +113,7 @@ export const signup = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { accountType, email, password, role, companyEmail } = req.body;
+  const { accountType, email, password, role } = req.body;
 
   let user = null;
 
@@ -114,9 +127,6 @@ export const login = asyncHandler(async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid login credentials' });
     }
 
-    if (accountType === 'company_business' && user.companyEmail !== companyEmail) {
-      return res.status(401).json({ success: false, message: 'Invalid company email' });
-    }
 
     const isPasswordValid = await comparePassword(password, user.passwordHash);
     if (!isPasswordValid) {
@@ -124,7 +134,7 @@ export const login = asyncHandler(async (req, res) => {
     }
   } else if (teamRoles.includes(role)) {
     try {
-      user = await findTeamUserForLogin({ accountType, email, password, role, companyEmail });
+      user = await findTeamUserForLogin({ accountType, email, password, role });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });
@@ -150,6 +160,60 @@ export const login = asyncHandler(async (req, res) => {
     message: 'Logged in successfully',
     data: await serializeAuthUser(user),
   });
+});
+
+export const requestPasswordResetOtp = asyncHandler(async (req, res) => {
+  const user = await resolvePasswordResetUser(req.body);
+
+  if (!user) {
+    return res.json({ success: true, message: genericOtpMessage, data: null });
+  }
+
+  const otp = generateOtp();
+  user.passwordResetOtpHash = await hashPassword(otp);
+  user.passwordResetOtpExpiresAt = new Date(Date.now() + env.passwordResetOtpExpiresMinutes * 60 * 1000);
+  user.passwordResetOtpAttempts = 0;
+  user.passwordResetRequestedAt = new Date();
+  await user.save();
+
+  await sendPasswordResetOtpEmail({ to: user.email, name: user.name, otp });
+
+  return res.json({ success: true, message: genericOtpMessage, data: null });
+});
+
+export const resetPasswordWithOtp = asyncHandler(async (req, res) => {
+  const { otp, newPassword } = req.body;
+  const user = await resolvePasswordResetUser(req.body, { includeResetHash: true });
+
+  if (!user || !user.passwordResetOtpHash || !user.passwordResetOtpExpiresAt) {
+    return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+  }
+
+  if (user.passwordResetOtpExpiresAt < new Date()) {
+    clearPasswordResetFields(user);
+    await user.save();
+    return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new OTP.' });
+  }
+
+  if (user.passwordResetOtpAttempts >= 5) {
+    clearPasswordResetFields(user);
+    await user.save();
+    return res.status(429).json({ success: false, message: 'Too many invalid OTP attempts. Please request a new OTP.' });
+  }
+
+  const isOtpValid = await comparePassword(otp, user.passwordResetOtpHash);
+  if (!isOtpValid) {
+    user.passwordResetOtpAttempts += 1;
+    await user.save();
+    return res.status(400).json({ success: false, message: 'Invalid OTP' });
+  }
+
+  user.plainPass = newPassword;
+  user.passwordHash = await hashPassword(newPassword);
+  clearPasswordResetFields(user);
+  await user.save();
+
+  return res.json({ success: true, message: 'Password reset successfully. Please login with your new password.', data: null });
 });
 
 export const logout = asyncHandler(async (req, res) => {

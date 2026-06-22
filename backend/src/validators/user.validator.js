@@ -1,8 +1,13 @@
 import { z } from 'zod';
 
-export const updateProfileSchema = z.object({
-  name: z.string().trim().min(2, 'Name is required'),
-});
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name is required').optional(),
+    themeMode: z.enum(['light', 'dark']).optional(),
+  })
+  .refine((data) => data.name !== undefined || data.themeMode !== undefined, {
+    message: 'Nothing to update',
+  });
 
 export const fakePaymentSchema = z.object({
   plan: z.enum(['plus', 'pro', 'business']),

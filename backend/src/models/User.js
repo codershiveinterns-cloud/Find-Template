@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
   {
     accountType: {
       type: String,
-      enum: ['freelancer_individual', 'company_business'],
+      enum: ['freelancer', 'individual', 'freelancer_individual', 'company_business'],
       required: true,
     },
     name: {
@@ -134,7 +134,29 @@ const userSchema = new mongoose.Schema(
         purchasedAt: { type: Date, default: Date.now },
       },
     ],
+    themeMode: {
+      type: String,
+      enum: ['light', 'dark'],
+      default: 'light',
+    },
     lastLoginAt: {
+      type: Date,
+      default: null,
+    },
+    passwordResetOtpHash: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    passwordResetOtpExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    passwordResetOtpAttempts: {
+      type: Number,
+      default: 0,
+    },
+    passwordResetRequestedAt: {
       type: Date,
       default: null,
     },
@@ -171,6 +193,7 @@ userSchema.methods.toSafeProfile = function () {
     paymentEmail: this.paymentEmail,
     paymentMethod: this.paymentMethod,
     purchasedTemplates: this.purchasedTemplates || [],
+    themeMode: this.themeMode || 'light',
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
     lastLoginAt: this.lastLoginAt,

@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
-const accountType = z.enum(['freelancer_individual', 'company_business']);
+const accountType = z.enum(['freelancer', 'individual', 'freelancer_individual', 'company_business']);
+const role = z.enum(['admin', 'developer', 'designer', 'manager']);
 const email = z.string().trim().email().toLowerCase();
 const password = z.string().min(8, 'Password must be at least 8 characters');
+const otp = z.string().trim().regex(/^\d{6}$/, 'OTP must be 6 digits');
 
 export const signupSchema = z
   .object({
@@ -30,16 +32,30 @@ export const signupSchema = z
     }
   });
 
-export const loginSchema = z
+export const loginSchema = z.object({
+  accountType,
+  email,
+  password: z.string().min(1, 'Password is required'),
+  role,
+});
+
+export const forgotPasswordRequestSchema = z.object({
+  accountType,
+  email,
+  role,
+});
+
+export const forgotPasswordResetSchema = z
   .object({
     accountType,
     email,
-    password: z.string().min(1, 'Password is required'),
-    role: z.enum(['admin', 'developer', 'designer', 'manager']),
-    companyEmail: email.optional().nullable(),
+    role,
+    otp,
+    newPassword: password,
+    confirmPassword: z.string().min(1, 'Confirm password is required'),
   })
   .superRefine((data, ctx) => {
-    if (data.accountType === 'company_business' && !data.companyEmail) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['companyEmail'], message: 'Company email is required' });
+    if (data.newPassword !== data.confirmPassword) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['confirmPassword'], message: 'Passwords do not match' });
     }
   });

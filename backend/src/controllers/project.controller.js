@@ -10,10 +10,18 @@ const effectiveOwnerId = (req) => {
 
 const ownerFilter = (req) => ({ ownerId: effectiveOwnerId(req) });
 
+const isAssignedProjectRole = (role) => role === 'developer' || role === 'designer';
+
+const canAccessProject = (req, projectId) => {
+  if (!isAssignedProjectRole(req.user.role)) return true;
+  const allowedProjectIds = (req.user.assignedProjects || []).map((assignedProjectId) => String(assignedProjectId));
+  return allowedProjectIds.includes(String(projectId));
+};
+
 const projectAccessFilter = (req) => {
   const filter = ownerFilter(req);
 
-  if (req.user.role === 'developer' || req.user.role === 'designer') {
+  if (isAssignedProjectRole(req.user.role)) {
     filter._id = { $in: req.user.assignedProjects || [] };
   }
 
@@ -80,11 +88,8 @@ export const createProject = asyncHandler(async (req, res) => {
 });
 
 export const getProject = asyncHandler(async (req, res) => {
-  if (req.user.role === 'developer' || req.user.role === 'designer') {
-    const allowedProjectIds = (req.user.assignedProjects || []).map((projectId) => String(projectId));
-    if (!allowedProjectIds.includes(String(req.params.id))) {
-      return res.status(404).json({ success: false, message: 'Project not found' });
-    }
+  if (!canAccessProject(req, req.params.id)) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
   }
 
   const project = await Project.findOne({ _id: req.params.id, ...ownerFilter(req) });
@@ -118,11 +123,8 @@ export const deleteProject = asyncHandler(async (req, res) => {
 });
 
 export const updateProjectStatus = asyncHandler(async (req, res) => {
-  if (req.user.role === 'developer' || req.user.role === 'designer') {
-    const allowedProjectIds = (req.user.assignedProjects || []).map((projectId) => String(projectId));
-    if (!allowedProjectIds.includes(String(req.params.id))) {
-      return res.status(404).json({ success: false, message: 'Project not found' });
-    }
+  if (!canAccessProject(req, req.params.id)) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
   }
 
   const project = await Project.findOne({ _id: req.params.id, ...ownerFilter(req) });
@@ -135,6 +137,38 @@ export const updateProjectStatus = asyncHandler(async (req, res) => {
   await project.save();
 
   return res.json({ success: true, message: 'Project status updated successfully', data: project });
+});
+
+export const updateProjectTemplate = asyncHandler(async (req, res) => {
+  if (!canAccessProject(req, req.params.id)) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  const project = await Project.findOne({ _id: req.params.id, ...ownerFilter(req) });
+
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  if (req.body.templateContent !== undefined) project.templateContent = req.body.templateContent || null;
+  if (req.body.heroImage !== undefined) project.heroImage = req.body.heroImage || '';
+  project.templateUpdatedAt = new Date();
+  project.templateUpdatedBy = req.user._id;
+
+  await project.save();
+
+  const assignedMembers = await User.find({ ...teamMemberFilter(req), assignedProjects: project._id })
+    .select('name email role')
+    .sort({ createdAt: -1 });
+
+  return res.json({
+    success: true,
+    message: 'Template changes saved successfully',
+    data: serializeProject(
+      project,
+      assignedMembers.map((member) => ({ _id: member._id, name: member.name, email: member.email, role: member.role }))
+    ),
+  });
 });
 
 export const updateProject = asyncHandler(async (req, res) => {

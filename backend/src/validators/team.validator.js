@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { DASHBOARD_MODULE_KEYS } from '../constants/modules.js';
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid project id');
-const role = z.enum(['developer', 'designer', 'manager']);
+const role = z.enum(['developer', 'manager']);
 const email = z.string().trim().email().toLowerCase();
 const assignedProjects = z.array(objectId).default([]);
 const managerModule = z.enum(DASHBOARD_MODULE_KEYS);
