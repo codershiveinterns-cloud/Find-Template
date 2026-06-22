@@ -305,16 +305,21 @@ export default function OverviewCards() {
           <div className="overview-chart-header-left">
             <span className="overview-section-label-inline">Analytics</span>
             <h2 className="overview-chart-title">Monthly Projects & Budget</h2>
+            <p className="overview-chart-subtitle">View project count and budget trends month-wise without overlapping labels.</p>
           </div>
-          <Select
-            value={chartFilter}
-            onChange={setChartFilter}
-            options={monthOptions}
-            size="large"
-            className="overview-chart-filter"
-          />
+          <div className="overview-chart-actions">
+            <span className="overview-chart-filter-label">View</span>
+            <Select
+              value={chartFilter}
+              onChange={setChartFilter}
+              options={monthOptions}
+              size="large"
+              className="overview-chart-filter"
+            />
+          </div>
         </div>
         <BarChart data={filteredChartData} />
-      </div>    </div>
+      </div>
+    </div>
   );
 }

@@ -149,6 +149,7 @@ export default function ClientsDashboard() {
       title: 'Client Name',
       dataIndex: 'name',
       key: 'name',
+      width: 220,
       render: (text) => (
         <span className="proj-table-name">
           <UserOutlined className="proj-table-name-icon" />
@@ -156,36 +157,41 @@ export default function ClientsDashboard() {
         </span>
       ),
     },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Mobile No.', dataIndex: 'mobileNumber', key: 'mobileNumber' },
-    { title: 'Website Type', dataIndex: 'websiteType', key: 'websiteType' },
+    { title: 'Email', dataIndex: 'email', key: 'email', width: 230 },
+    { title: 'Mobile No.', dataIndex: 'mobileNumber', key: 'mobileNumber', width: 150 },
+    { title: 'Website Type', dataIndex: 'websiteType', key: 'websiteType', width: 170 },
     {
       title: 'Project Budget',
       dataIndex: 'projectBudget',
       key: 'projectBudget',
+      width: 160,
       render: formatCurrency,
     },
     {
       title: 'Received Amount',
       dataIndex: 'receivedAmount',
       key: 'receivedAmount',
+      width: 170,
       render: formatCurrency,
     },
     {
       title: 'Pending Amount',
       dataIndex: 'pendingAmount',
       key: 'pendingAmount',
+      width: 170,
       render: formatCurrency,
     },
     {
       title: 'Payment Date',
       dataIndex: 'paymentDate',
       key: 'paymentDate',
+      width: 150,
       render: formatDate,
     },
     {
       title: 'Actions',
       key: 'actions',
+      width: 170,
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title="View Details">
@@ -265,7 +271,14 @@ export default function ClientsDashboard() {
           </div>
         </div>
         <div className="proj-table-wrapper">
-          <Table rowKey="_id" columns={columns} dataSource={clients} pagination={{ pageSize: 6 }} className="proj-premium-table" />
+          <Table
+            rowKey="_id"
+            columns={columns}
+            dataSource={clients}
+            pagination={{ pageSize: 6 }}
+            scroll={{ x: 'max-content' }}
+            className="proj-premium-table"
+          />
         </div>
       </div>
 

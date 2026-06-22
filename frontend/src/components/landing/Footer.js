@@ -23,7 +23,7 @@ export default function Footer() {
           <h3>Legal</h3>
           <Link className="footer-link" href="/terms-and-conditions">Terms and Conditions</Link>
           <Link className="footer-link" href="/privacy-policy">Privacy Policy</Link>
-          <button className="footer-link">Refund Policy</button>
+          <Link className="footer-link" href="/refund-policy">Refund Policy</Link>
         </div>
         <div>
           <h3>Contact</h3>

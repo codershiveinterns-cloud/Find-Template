@@ -34,3 +34,8 @@ export const updateProjectStatus = async (id, payload) => {
   const { data } = await apiClient.patch(`/projects/${id}/status`, payload);
   return data;
 };
+
+export const updateProjectTemplate = async (id, payload) => {
+  const { data } = await apiClient.patch(`/projects/${id}/template`, payload);
+  return data;
+};

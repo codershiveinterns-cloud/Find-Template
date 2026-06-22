@@ -164,6 +164,7 @@ export default function ProjectsDashboard() {
       title: 'Project Name',
       dataIndex: 'name',
       key: 'name',
+      width: 240,
       render: (text) => (
         <span className="proj-table-name">
           <FolderOutlined className="proj-table-name-icon" />
@@ -175,6 +176,7 @@ export default function ProjectsDashboard() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 150,
       render: (status) => {
         const config = statusConfig[status] || {};
         return (
@@ -198,18 +200,21 @@ export default function ProjectsDashboard() {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
+      width: 140,
       render: (value) => value ? new Date(value).toLocaleDateString() : 'Data not available',
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
       key: 'endDate',
+      width: 140,
       render: (value) => value ? new Date(value).toLocaleDateString() : 'Data not available',
     },
-    { title: 'Client Name', dataIndex: 'clientName', key: 'clientName' },
+    { title: 'Client Name', dataIndex: 'clientName', key: 'clientName', width: 180 },
     {
       title: 'Assign Members',
       key: 'assignedMembers',
+      width: 160,
       render: (_, record) => {
         const count = record.assignedMembersCount ?? record.assignedMembers?.length ?? 0;
         return <Tag className="team-count-tag">{count} Members</Tag>;
@@ -220,12 +225,14 @@ export default function ProjectsDashboard() {
         title: 'Budget',
         dataIndex: 'budget',
         key: 'budget',
+        width: 140,
         render: (value) => `$${Number(value || 0).toLocaleString()}`,
       },
     ] : []),
     {
       title: 'Actions',
       key: 'actions',
+      width: 210,
       render: (_, record) => (
         <Space size="middle">
           <Button
@@ -338,6 +345,7 @@ export default function ProjectsDashboard() {
             columns={columns}
             dataSource={filteredProjects}
             pagination={{ pageSize: 6 }}
+            scroll={{ x: 'max-content' }}
             className="proj-premium-table"
           />
         </div>

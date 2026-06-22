@@ -149,6 +149,7 @@ export default function InvoicesDashboard() {
       title: 'Client Name',
       dataIndex: 'clientName',
       key: 'clientName',
+      width: 220,
       render: (text) => (
         <span className="proj-table-name">
           <FileTextOutlined className="proj-table-name-icon" />
@@ -157,11 +158,12 @@ export default function InvoicesDashboard() {
       ),
       exportValue: (record) => record.clientName,
     },
-    { title: 'Project Name', dataIndex: 'projectName', key: 'projectName' },
+    { title: 'Project Name', dataIndex: 'projectName', key: 'projectName', width: 220 },
     {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
+      width: 140,
       render: formatCurrency,
       exportValue: (record) => formatCurrency(record.amount),
     },
@@ -169,6 +171,7 @@ export default function InvoicesDashboard() {
       title: 'GST (18%)',
       dataIndex: 'gstAmount',
       key: 'gstAmount',
+      width: 140,
       render: formatCurrency,
       exportValue: (record) => formatCurrency(record.gstAmount),
     },
@@ -176,6 +179,7 @@ export default function InvoicesDashboard() {
       title: 'Total Amount',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
+      width: 160,
       render: formatCurrency,
       exportValue: (record) => formatCurrency(record.totalAmount),
     },
@@ -183,6 +187,7 @@ export default function InvoicesDashboard() {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
+      width: 140,
       render: formatDate,
       exportValue: (record) => formatDate(record.dueDate),
     },
@@ -190,6 +195,7 @@ export default function InvoicesDashboard() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 140,
       render: (status) => {
         const config = statusConfig[status] || statusConfig.pending;
         return (
@@ -213,6 +219,7 @@ export default function InvoicesDashboard() {
     {
       title: 'Actions',
       key: 'actions',
+      width: 140,
       exportable: false,
       render: (_, record) => (
         <Space size="middle">
@@ -289,7 +296,14 @@ export default function InvoicesDashboard() {
           </div>
         </div>
         <div className="proj-table-wrapper">
-          <Table rowKey="_id" columns={columns} dataSource={invoices} pagination={{ pageSize: 6 }} className="proj-premium-table" />
+          <Table
+            rowKey="_id"
+            columns={columns}
+            dataSource={invoices}
+            pagination={{ pageSize: 6 }}
+            scroll={{ x: 'max-content' }}
+            className="proj-premium-table"
+          />
         </div>
       </div>
 

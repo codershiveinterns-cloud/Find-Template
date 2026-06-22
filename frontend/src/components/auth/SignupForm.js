@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Form, Input, Select, Typography } from 'antd';
-import { ArrowRightOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, BankOutlined, LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { signupUser } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
@@ -13,7 +13,7 @@ import { notifyError, notifySuccess } from '@/lib/notify';
 export default function SignupForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [accountType, setAccountType] = useState('freelancer_individual');
+  const [accountType, setAccountType] = useState('freelancer');
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -42,10 +42,10 @@ export default function SignupForm() {
           <Select size="large" options={ACCOUNT_TYPES} onChange={setAccountType} />
         </Form.Item>
         <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
-          <Input size="large" placeholder="Your name" />
+          <Input size="large" prefix={<UserOutlined />} placeholder="Your name" />
         </Form.Item>
         <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
-          <Input size="large" placeholder="admin@example.com" />
+          <Input size="large" prefix={<MailOutlined />} placeholder="admin@example.com" />
         </Form.Item>
         <Form.Item name="role" label="Select Role" rules={[{ required: true }]}>
           <Select size="large" options={SIGNUP_ROLES} />
@@ -53,15 +53,15 @@ export default function SignupForm() {
         {accountType === 'company_business' && (
           <>
             <Form.Item name="companyName" label="Company Name" rules={[{ required: true, message: 'Company name is required' }]}>
-              <Input size="large" placeholder="Company name" />
+              <Input size="large" prefix={<BankOutlined />} placeholder="Company name" />
             </Form.Item>
             <Form.Item name="companyEmail" label="Company Email" rules={[{ required: true, type: 'email', message: 'Valid company email is required' }]}>
-              <Input size="large" placeholder="company@example.com" />
+              <Input size="large" prefix={<MailOutlined />} placeholder="company@example.com" />
             </Form.Item>
           </>
         )}
         <Form.Item name="password" label="Password" rules={[{ required: true, min: 8, message: 'Password must be at least 8 characters' }]}>
-          <Input.Password size="large" placeholder="Password" />
+          <Input.Password size="large" prefix={<LockOutlined />} placeholder="Password" />
         </Form.Item>
         <Form.Item
           name="confirmPassword"
@@ -77,7 +77,7 @@ export default function SignupForm() {
             }),
           ]}
         >
-          <Input.Password size="large" placeholder="Confirm password" />
+          <Input.Password size="large" prefix={<LockOutlined />} placeholder="Confirm password" />
         </Form.Item>
         <Button className="auth-submit-btn" type="primary" htmlType="submit" loading={loading} block size="large" icon={<ArrowRightOutlined />}>Create Account</Button>
       </Form>

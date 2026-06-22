@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Form, Input, Select, Typography } from 'antd';
-import { ArrowRightOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { loginUser } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
@@ -13,7 +13,6 @@ import { notifyError, notifySuccess } from '@/lib/notify';
 export default function LoginForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [accountType, setAccountType] = useState('freelancer_individual');
   const [role, setRole] = useState('admin');
   const isTeamRole = role !== 'admin';
 
@@ -36,27 +35,25 @@ export default function LoginForm() {
       <Typography.Paragraph type="secondary">Enter your details to open your protected dashboard.</Typography.Paragraph>
       {isTeamRole && (
         <Typography.Paragraph type="secondary">
-          Team accounts use the admin / owner email with the member password and selected role.
+          Team accounts use the member registered email with the member password and selected role.
         </Typography.Paragraph>
       )}
-      <Form layout="vertical" initialValues={{ accountType, role: 'admin' }} onFinish={onFinish} requiredMark={false}>
+      <Form layout="vertical" initialValues={{ accountType: 'freelancer', role: 'admin' }} onFinish={onFinish} requiredMark={false}>
         <Form.Item name="accountType" label="Select Account" rules={[{ required: true }]}>
-          <Select size="large" options={ACCOUNT_TYPES} onChange={setAccountType} />
+          <Select size="large" options={ACCOUNT_TYPES} />
         </Form.Item>
-        <Form.Item name="email" label={isTeamRole ? 'Admin / Owner Email' : 'Email'} rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
-          <Input size="large" placeholder={isTeamRole ? 'admin@example.com' : 'you@example.com'} />
+        <Form.Item name="email" label={isTeamRole ? 'Registered Email' : 'Email'} rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
+          <Input size="large" prefix={<MailOutlined />} placeholder={isTeamRole ? 'member@example.com' : 'you@example.com'} />
         </Form.Item>
-        {accountType === 'company_business' && (
-          <Form.Item name="companyEmail" label="Company Email" rules={[{ required: true, type: 'email', message: 'Valid company email is required' }]}>
-            <Input size="large" placeholder="company@example.com" />
-          </Form.Item>
-        )}
         <Form.Item name="password" label={isTeamRole ? 'Member Password' : 'Password'} rules={[{ required: true, message: 'Password is required' }]}>
-          <Input.Password size="large" placeholder={isTeamRole ? 'Member password' : 'Password'} />
+          <Input.Password size="large" prefix={<LockOutlined />} placeholder={isTeamRole ? 'Member password' : 'Password'} />
         </Form.Item>
         <Form.Item name="role" label="Select Role" rules={[{ required: true }]}>
           <Select size="large" options={LOGIN_ROLES} onChange={setRole} />
         </Form.Item>
+        <div className="auth-form-links">
+          <Link href="/auth/forgot-password">Forgot password?</Link>
+        </div>
         <Button className="auth-submit-btn" type="primary" htmlType="submit" loading={loading} block size="large" icon={<ArrowRightOutlined />}>Login</Button>
       </Form>
       <Typography.Paragraph style={{ marginTop: 18, textAlign: 'center' }}>

@@ -17,7 +17,7 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons';
 import { getMe } from '@/lib/api/auth';
-import { getProject, updateProject, updateProjectStatus } from '@/lib/api/projects';
+import { getProject, updateProject, updateProjectStatus, updateProjectTemplate } from '@/lib/api/projects';
 import { getApiError } from '@/lib/api/client';
 import { notifyError, notifySuccess } from '@/lib/notify';
 import { TEMPLATE_CATALOG } from '@/lib/constants/templateCatalog';
@@ -721,6 +721,7 @@ export default function ProjectDetailsPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isTemplateEditing, setIsTemplateEditing] = useState(false);
   const [templateContent, setTemplateContent] = useState(null);
@@ -811,30 +812,17 @@ export default function ProjectDetailsPage() {
     contactText: 'Share your project details and our team will respond with a tailored premium solution.',
   }), [displayName, displayType, project?.clientName, project?.name]);
 
-  const templateStorageKey = useMemo(() => {
-    if (!project || !hasTemplate) return '';
-    return `project-mini-template:${id}:${project.templateKey || project.templateName || displayName}`;
-  }, [displayName, hasTemplate, id, project]);
-
   useEffect(() => {
-    if (!hasTemplate || !templateStorageKey) return;
-
-    try {
-      const saved = localStorage.getItem(templateStorageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setTemplateContent({ ...defaultMiniSiteContent, ...(parsed.content || {}) });
-        setHeroImageOverride(parsed.heroImage || '');
-      } else {
-        setTemplateContent(defaultMiniSiteContent);
-        setHeroImageOverride('');
-      }
-      setIsTemplateEditing(false);
-    } catch {
-      setTemplateContent(defaultMiniSiteContent);
+    if (!hasTemplate) {
+      setTemplateContent(null);
       setHeroImageOverride('');
+      return;
     }
-  }, [defaultMiniSiteContent, hasTemplate, templateStorageKey]);
+
+    setTemplateContent({ ...defaultMiniSiteContent, ...(project?.templateContent || {}) });
+    setHeroImageOverride(project?.heroImage || '');
+    setIsTemplateEditing(false);
+  }, [defaultMiniSiteContent, hasTemplate, project?.heroImage, project?.templateContent]);
 
   const handleSave = async (values) => {
     setSaving(true);

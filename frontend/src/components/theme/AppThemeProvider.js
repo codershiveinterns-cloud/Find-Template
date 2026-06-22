@@ -1,10 +1,9 @@
 'use client';
 
 import { App as AntdApp, ConfigProvider, theme as antdTheme } from 'antd';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 import { setNotificationApi } from '@/lib/notify';
 
-const STORAGE_KEY = 'nexlance_theme';
 const ThemeContext = createContext(null);
 
 export const useAppTheme = () => {
@@ -26,41 +25,25 @@ function NotificationBridge({ children }) {
 }
 
 export default function AppThemeProvider({ children }) {
-  const [mode, setModeState] = useState('light');
-  const isDark = mode === 'dark';
-
   useEffect(() => {
-    const storedMode = window.localStorage.getItem(STORAGE_KEY);
-    if (storedMode === 'dark' || storedMode === 'light') {
-      setModeState(storedMode);
-      document.documentElement.dataset.theme = storedMode;
-      return;
-    }
-
     document.documentElement.dataset.theme = 'light';
   }, []);
 
-  const setMode = useCallback((nextMode) => {
-    const safeMode = nextMode === 'dark' ? 'dark' : 'light';
-    setModeState(safeMode);
-    window.localStorage.setItem(STORAGE_KEY, safeMode);
-    document.documentElement.dataset.theme = safeMode;
-  }, []);
-
   const value = useMemo(() => ({
-    mode,
-    isDark,
-    setMode,
-    toggleMode: () => setMode(isDark ? 'light' : 'dark'),
-  }), [isDark, mode, setMode]);
+    mode: 'light',
+    isDark: false,
+    setMode: () => {},
+    hydrateMode: () => {},
+    toggleMode: () => {},
+  }), []);
 
   return (
     <ThemeContext.Provider value={value}>
       <ConfigProvider
         theme={{
-          algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          algorithm: antdTheme.defaultAlgorithm,
           token: {
-            colorPrimary: isDark ? '#60a5fa' : '#2563eb',
+            colorPrimary: '#2563eb',
             colorSuccess: '#10b981',
             colorWarning: '#f59e0b',
             colorError: '#ef4444',

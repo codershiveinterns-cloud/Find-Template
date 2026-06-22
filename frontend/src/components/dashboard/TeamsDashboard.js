@@ -31,7 +31,6 @@ import { dashboardMenu } from '@/lib/constants/routes';
 
 const roleOptions = [
   { label: 'Developer', value: 'developer' },
-  { label: 'Designer', value: 'designer' },
   { label: 'Manager', value: 'manager' },
 ];
 
@@ -56,9 +55,6 @@ export default function TeamsDashboard() {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
-  const loginEmail = profile?.ownerEmail || profile?.loginEmail || profile?.email || '';
-  const companyEmail = profile?.companyEmail || '';
-  const isBusinessAccount = profile?.accountType === 'company_business';
   const selectedRole = Form.useWatch('role', form);
   const isManagerRole = selectedRole === 'manager';
   const isAdmin = profile?.role === 'admin';
@@ -99,7 +95,6 @@ export default function TeamsDashboard() {
   const stats = useMemo(() => ({
     total: members.length,
     developer: members.filter((member) => member.role === 'developer').length,
-    designer: members.filter((member) => member.role === 'designer').length,
     manager: members.filter((member) => member.role === 'manager').length,
   }), [members]);
 
@@ -113,9 +108,7 @@ export default function TeamsDashboard() {
       form.setFieldsValue({
         name: editingMember.name,
         email: editingMember.email,
-        loginEmail: editingMember.loginEmail || loginEmail,
-        companyEmail: editingMember.companyEmail || companyEmail,
-        role: editingMember.role,
+        role: roleOptions.some((option) => option.value === editingMember.role) ? editingMember.role : 'developer',
         assignedProjects: normalizeProjectIds(editingMember.assignedProjects),
         assignedProjectModule: !!editingMember.assignedProjectModule,
         assignedModules: (editingMember.assignedModules || []).filter((moduleKey) => managerModuleKeys.includes(moduleKey)),
@@ -125,14 +118,12 @@ export default function TeamsDashboard() {
     }
 
     form.setFieldsValue({
-      loginEmail,
-      companyEmail,
       role: 'developer',
       assignedProjects: [],
       assignedProjectModule: true,
       assignedModules: [],
     });
-  }, [companyEmail, editingMember, form, loginEmail, managerModuleKeys, open]);
+  }, [editingMember, form, managerModuleKeys, open]);
 
   const openCreateForm = () => {
     setEditingMember(null);
@@ -204,6 +195,7 @@ export default function TeamsDashboard() {
       title: 'Member Name',
       dataIndex: 'name',
       key: 'name',
+      width: 220,
       render: (text) => (
         <span className="proj-table-name">
           <UserOutlined className="proj-table-name-icon" />
@@ -215,11 +207,13 @@ export default function TeamsDashboard() {
       title: 'Member Email',
       dataIndex: 'email',
       key: 'email',
+      width: 260,
       render: (email) => <span className="team-email-cell"><MailOutlined /> {email}</span>,
     },
     {
       title: 'Assignments',
       key: 'assignments',
+      width: 150,
       render: (_, record) => {
         if (record.role === 'manager') {
           const count = record.assignedModules?.length || 0;
@@ -233,6 +227,7 @@ export default function TeamsDashboard() {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
+      width: 140,
       render: (role) => {
         const config = roleConfig[role] || {};
         return (
@@ -255,6 +250,7 @@ export default function TeamsDashboard() {
     {
       title: 'Actions',
       key: 'actions',
+      width: 170,
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title="View Details">
@@ -284,7 +280,6 @@ export default function TeamsDashboard() {
   const statCards = [
     { key: 'all', label: 'Team Members', icon: <TeamOutlined />, value: stats.total, theme: 'blue' },
     { key: 'developer', label: 'Developers', icon: <ProjectOutlined />, value: stats.developer, theme: 'cyan' },
-    { key: 'designer', label: 'Designers', icon: <UserOutlined />, value: stats.designer, theme: 'purple' },
     { key: 'manager', label: 'Managers', icon: <TeamOutlined />, value: stats.manager, theme: 'amber' },
   ];
 
@@ -302,7 +297,7 @@ export default function TeamsDashboard() {
               Register your team with <span className="text-gradient">premium control.</span>
             </h1>
             <p className="proj-hero-subtitle">
-              Create developer, designer, and manager accounts with role-based login and package-based module access.
+              Create developer and manager accounts with role-based login and package-based module access.
             </p>
           </div>
           {isAdmin && (
@@ -318,7 +313,7 @@ export default function TeamsDashboard() {
       <div className="proj-stats-section">
         <Row gutter={[16, 16]}>
           {statCards.map((item) => (
-            <Col xs={24} md={6} key={item.key}>
+            <Col xs={24} sm={12} lg={6} key={item.key}>
               <div
                 className={`proj-stat-card proj-stat-${item.theme}`}
                 style={{ cursor: 'pointer' }}
@@ -362,6 +357,7 @@ export default function TeamsDashboard() {
             columns={columns}
             dataSource={filteredMembers}
             pagination={{ pageSize: 6 }}
+            scroll={{ x: 'max-content' }}
             className="proj-premium-table"
           />
         </div>
@@ -383,7 +379,7 @@ export default function TeamsDashboard() {
         <div className="proj-modal-header">
           <span className="proj-modal-badge"><TeamOutlined /> {editingMember ? 'Edit Team Member' : 'Register Team Member'}</span>
           <h2>{editingMember ? 'Update member account' : 'Create a team login account'}</h2>
-          <p>Member login uses the admin/owner email, selected role, and the member password.</p>
+          <p>Member login uses the member registered email, selected role, and the member password.</p>
         </div>
         <Form form={form} layout="vertical" onFinish={submitMember} requiredMark={false}>
           <div className="payment-two-col">
@@ -406,14 +402,6 @@ export default function TeamsDashboard() {
               <Input.Password size="large" placeholder={editingMember ? 'Leave blank to keep current password' : 'Create member password'} />
             </Form.Item>
           </div>
-          <Form.Item name="loginEmail" label="Admin / Owner Login Email">
-            <Input size="large" disabled placeholder="Admin login email" />
-          </Form.Item>
-          {isBusinessAccount && (
-            <Form.Item name="companyEmail" label="Company Email">
-              <Input size="large" disabled placeholder="Company email" />
-            </Form.Item>
-          )}
           {isManagerRole ? (
             <Form.Item
               name="assignedModules"
@@ -470,18 +458,6 @@ export default function TeamsDashboard() {
               <small>Member Contact Email</small>
               <strong>{viewMember.email}</strong>
             </div>
-            <div className="team-view-item">
-              <span><MailOutlined /></span>
-              <small>Login Email</small>
-              <strong>{viewMember.loginEmail || loginEmail || 'Not available'}</strong>
-            </div>
-            {viewMember.accountType === 'company_business' && (
-              <div className="team-view-item">
-                <span><MailOutlined /></span>
-                <small>Company Email</small>
-                <strong>{viewMember.companyEmail || 'Not available'}</strong>
-              </div>
-            )}
             <div className="team-view-item">
               <span><TeamOutlined /></span>
               <small>Role</small>

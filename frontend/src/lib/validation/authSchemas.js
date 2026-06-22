@@ -2,10 +2,12 @@ import { z } from 'zod';
 
 const email = z.string().trim().email('Valid email is required');
 const password = z.string().min(8, 'Password must be at least 8 characters');
+const accountType = z.enum(['freelancer', 'individual', 'freelancer_individual', 'company_business']);
+const role = z.enum(['admin', 'developer', 'designer', 'manager']);
 
 export const signupSchema = z
   .object({
-    accountType: z.enum(['freelancer_individual', 'company_business']),
+    accountType,
     name: z.string().trim().min(2, 'Name is required'),
     email,
     role: z.literal('admin'),
@@ -30,20 +32,9 @@ export const signupSchema = z
     }
   });
 
-export const loginSchema = z
-  .object({
-    accountType: z.enum(['freelancer_individual', 'company_business']),
-    email,
-    password: z.string().min(1, 'Password is required'),
-    role: z.enum(['admin', 'developer', 'designer', 'manager']),
-    companyEmail: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.accountType === 'company_business') {
-      if (!data.companyEmail?.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['companyEmail'], message: 'Company email is required' });
-      } else if (!z.string().email().safeParse(data.companyEmail).success) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['companyEmail'], message: 'Valid company email is required' });
-      }
-    }
-  });
+export const loginSchema = z.object({
+  accountType,
+  email,
+  password: z.string().min(1, 'Password is required'),
+  role,
+});

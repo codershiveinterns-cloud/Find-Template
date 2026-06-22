@@ -2,7 +2,6 @@
 
 import { Button, Form, Input, Modal } from 'antd';
 import {
-  BulbOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
   DeleteOutlined,
@@ -10,10 +9,8 @@ import {
   LockOutlined,
   LogoutOutlined,
   MailOutlined,
-  MoonOutlined,
   SafetyCertificateOutlined,
   ShopOutlined,
-  SunOutlined,
   ToolOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -26,7 +23,6 @@ import { formatPackage, formatPackageExpiry, getTemplateUsage } from '@/lib/cons
 import { formatAccountType } from '@/lib/constants/roles';
 import { notifyError, notifySuccess } from '@/lib/notify';
 import { useDashboardUser } from '../DashboardUserContext';
-import { useAppTheme } from '@/components/theme/AppThemeProvider';
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : 'Data not available');
 const formatMoney = (value) => `$${Number(value || 0).toLocaleString()}`;
@@ -35,7 +31,6 @@ const fallback = (value) => value || 'Data not available';
 export default function SettingsPageClient() {
   const router = useRouter();
   const { user, setUser } = useDashboardUser();
-  const { mode, setMode } = useAppTheme();
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -45,7 +40,6 @@ export default function SettingsPageClient() {
   const [passwordForm] = Form.useForm();
   const [deleteForm] = Form.useForm();
 
-  const isDark = mode === 'dark';
   const isAdmin = user?.role === 'admin';
   const isCompanyAccount = user?.accountType === 'company_business';
   const loginEmail = user?.loginEmail || user?.ownerEmail || user?.email;
@@ -137,7 +131,7 @@ export default function SettingsPageClient() {
           <div>
             <span className="settings-hero-badge"><ToolOutlined /> Premium Settings</span>
             <h1>Control your account with <span className="text-gradient">premium clarity.</span></h1>
-            <p>Manage profile details, security, account actions, and the full website theme from one place.</p>
+            <p>Manage profile details, security, and account actions from one place.</p>
             <div className="settings-status-row">
               <span><UserOutlined /> {fallback(user?.name)}</span>
               <span><SafetyCertificateOutlined /> {fallback(user?.role)}</span>
@@ -147,7 +141,6 @@ export default function SettingsPageClient() {
           <div className="settings-quick-actions">
             <a href="#profile-settings">Profile</a>
             <a href="#account-settings">Account</a>
-            <a href="#theme-settings">Theme</a>
           </div>
         </div>
       </section>
@@ -260,29 +253,6 @@ export default function SettingsPageClient() {
           <Button danger size="large" icon={<DeleteOutlined />} onClick={() => setDeleteOpen(true)} className="settings-danger-btn">
             Delete Account
           </Button>
-        </div>
-      </section>
-
-      <section id="theme-settings" className="settings-card settings-theme-section">
-        <div className="settings-card-heading">
-          <span><BulbOutlined /></span>
-          <div>
-            <small>Theme</small>
-            <h2>Website appearance</h2>
-            <p>Switch between premium light mode and dark mode. Your choice is saved automatically.</p>
-          </div>
-        </div>
-        <div className="settings-theme-grid">
-          <button type="button" className={`settings-theme-card ${!isDark ? 'active' : ''}`} onClick={() => setMode('light')}>
-            <span className="settings-theme-icon light"><SunOutlined /></span>
-            <strong>Light Mode</strong>
-            <small>Clean premium workspace with bright surfaces.</small>
-          </button>
-          <button type="button" className={`settings-theme-card ${isDark ? 'active' : ''}`} onClick={() => setMode('dark')}>
-            <span className="settings-theme-icon dark"><MoonOutlined /></span>
-            <strong>Dark Mode</strong>
-            <small>Deep premium dashboard with soft neon contrast.</small>
-          </button>
         </div>
       </section>
 

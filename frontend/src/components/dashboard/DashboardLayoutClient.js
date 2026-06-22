@@ -3,6 +3,7 @@
 import { Layout, Result, Spin } from 'antd';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Footer from '@/components/landing/Footer';
 import { getMe } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
 import {
@@ -23,10 +24,14 @@ export default function DashboardLayoutClient({ children }) {
   const [blocked, setBlocked] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const applyUser = (nextUser) => {
+    setUser(nextUser);
+    return nextUser;
+  };
+
   const refreshUser = async () => {
     const response = await getMe();
-    setUser(response.data);
-    return response.data;
+    return applyUser(response.data);
   };
 
   useEffect(() => {
@@ -44,7 +49,7 @@ export default function DashboardLayoutClient({ children }) {
           router.push('/auth/login');
           return;
         }
-        setUser(currentUser);
+        applyUser(currentUser);
 
         const allowedKeys = getUserAllowedDashboardKeys(currentUser);
         const currentKey = getDashboardKeyFromPath(pathname);
@@ -79,11 +84,11 @@ export default function DashboardLayoutClient({ children }) {
   }
 
   return (
-    <DashboardUserProvider value={{ user, setUser, refreshUser }}>
+    <DashboardUserProvider value={{ user, setUser: applyUser, refreshUser }}>
       <Layout className="dashboard-shell">
         <DashboardSidebar user={user} mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
         <Layout>
-          <DashboardTopbar user={user} onProfileUpdated={setUser} onMenuClick={() => setMobileSidebarOpen(true)} />
+          <DashboardTopbar user={user} onProfileUpdated={applyUser} onMenuClick={() => setMobileSidebarOpen(true)} />
           <main className="dashboard-content">
             {blocked ? (
               <Result
@@ -93,6 +98,9 @@ export default function DashboardLayoutClient({ children }) {
               />
             ) : children}
           </main>
+          <div className="dashboard-footer-wrap">
+            <Footer />
+          </div>
         </Layout>
       </Layout>
     </DashboardUserProvider>
