@@ -17,10 +17,22 @@ import { errorHandler, notFound } from './middleware/error.middleware.js';
 
 export const app = express();
 
+const allowedOrigins = [
+  env.frontendUrl,
+  'https://find-template-2.onrender.com',
+  'http://localhost:3000',
+].filter(Boolean);
+
 app.use(helmet());
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
