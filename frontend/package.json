@@ -1,24 +1,40 @@
 {
   "name": "nexlance-frontend",
   "version": "1.0.0",
-  "description": "Nexlance project management frontend",
+  "description": "Nexlance project management frontend and API",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:api": "node --watch backend/src/server.js",
     "build": "next build",
     "start": "next start",
+    "start:api": "node backend/src/server.js",
     "lint": "next lint"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "dependencies": {
     "@ant-design/icons": "latest",
     "@hookform/resolvers": "latest",
     "antd": "latest",
     "axios": "latest",
+    "bcryptjs": "latest",
+    "cookie-parser": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "express-rate-limit": "latest",
+    "helmet": "latest",
+    "jsonwebtoken": "latest",
+    "mongoose": "latest",
     "next": "latest",
+    "nodemailer": "^9.0.1",
     "react": "latest",
     "react-dom": "latest",
     "react-hook-form": "latest",
+    "square": "^44.2.0",
     "zod": "latest"
   },
   "devDependencies": {
