@@ -19,8 +19,7 @@ import { errorHandler, notFound } from './middleware/error.middleware.js';
 export const app = express();
 
 const allowedOrigins = [
-  env.frontendUrl,
-  'https://find-template-2.onrender.com',
+  ...env.frontendUrls,
   'http://localhost:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3000',

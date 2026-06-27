@@ -2,11 +2,14 @@
   "name": "nexlance-backend",
   "version": "1.0.0",
   "description": "Nexlance project management backend API",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "nodemon server.js"
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "dependencies": {
     "bcryptjs": "latest",

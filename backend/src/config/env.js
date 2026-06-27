@@ -2,12 +2,18 @@ import dotenv from 'dotenv';
 
 dotenv.config({ override: true });
 
+const frontendUrls = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((url) => url.trim())
+  .filter(Boolean);
+
 export const env = {
   port: process.env.PORT || 5000,
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nexlance',
   jwtSecret: process.env.JWT_SECRET || 'replace_with_secure_secret',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '12h',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  frontendUrl: frontendUrls[0] || 'http://localhost:3000',
+  frontendUrls,
   nodeEnv: process.env.NODE_ENV || 'development',
   smtpHost: process.env.SMTP_HOST || '',
   smtpPort: Number(process.env.SMTP_PORT || 587),
