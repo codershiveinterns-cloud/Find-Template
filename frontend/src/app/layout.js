@@ -5,6 +5,11 @@ import './globals.css';
 export const metadata = {
   title: 'FindTemplates | Project Management System',
   description: 'Manage projects, teams, clients, invoices, and services in one workspace.',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }) {

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import BrandLogoMark from '@/components/brand/BrandLogoMark';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getMe } from '@/lib/api/auth';
@@ -64,7 +65,10 @@ export default function TransparentNavbar() {
 
   return (
     <nav className="transparent-nav">
-      <Link href={loggedIn ? '/dashboard' : '/'} className="nav-brand" onClick={() => setMobileOpen(false)}>FindTemplates</Link>
+      <Link href={loggedIn ? '/dashboard' : '/'} className="nav-brand" onClick={() => setMobileOpen(false)}>
+        <BrandLogoMark className="nav-brand-mark" />
+        <span>FindTemplates</span>
+      </Link>
       {showPublicNavItems && (
         <div className="nav-links">
           {navItems.map((item) => (

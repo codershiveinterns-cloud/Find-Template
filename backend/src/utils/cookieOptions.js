@@ -7,5 +7,4 @@ export const authCookieOptions = {
   sameSite: isSecureCookie ? 'none' : 'lax',
   secure: isSecureCookie,
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
 };

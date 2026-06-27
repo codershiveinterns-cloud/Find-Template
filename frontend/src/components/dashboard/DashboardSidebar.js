@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { dashboardMenu } from '@/lib/constants/routes';
 import { getUserAllowedDashboardKeys } from '@/lib/dashboardAccess';
+import BrandLogoMark from '@/components/brand/BrandLogoMark';
 
 const { Sider } = Layout;
 
@@ -52,7 +53,7 @@ export default function DashboardSidebar({ user, mobileOpen = false, onClose }) 
   const sidebarContent = (
     <>
       <div className="dashboard-logo">
-        <span className="dashboard-logo-mark">F</span>
+        <BrandLogoMark className="dashboard-logo-mark" />
         <div>
           <strong>FindTemplates</strong>
           <small>{user?.role === 'admin' ? (user?.selectedPackage ? `${user.selectedPackage} package` : 'No package selected') : `${user?.role || 'team'} account`}</small>
