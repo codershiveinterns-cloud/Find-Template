@@ -4,8 +4,13 @@ FindTemplates is a full-stack web application for template browsing, project man
 
 ## Project Structure
 
-- `frontend/` — Next.js frontend dashboard and landing pages
-- `backend/` — Express/MongoDB backend API
+- `src/` — Next.js frontend dashboard and landing pages
+- `api/` — Vercel serverless API entrypoint
+- `backend/` — Express/MongoDB backend API source
+
+## Deployment
+
+Deploy from the repository root (`./`) as a Next.js project.
 
 ## Notes
 
