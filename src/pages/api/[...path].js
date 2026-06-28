@@ -1,5 +1,5 @@
-import { app } from '../backend/src/app.js';
-import { connectDB } from '../backend/src/config/db.js';
+import { app } from '../../../backend/src/app.js';
+import { connectDB } from '../../../backend/src/config/db.js';
 
 let connectionPromise;
 
@@ -12,6 +12,13 @@ const getConnection = () => {
   }
 
   return connectionPromise;
+};
+
+export const config = {
+  api: {
+    bodyParser: false,
+    externalResolver: true,
+  },
 };
 
 export default async function handler(req, res) {
