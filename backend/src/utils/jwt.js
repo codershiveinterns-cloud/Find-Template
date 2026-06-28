@@ -1,21 +1,20 @@
-import { randomUUID } from 'crypto';
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
+import { env, requireRuntimeEnv } from '../config/env.js';
 
-const serverSessionId = randomUUID();
+const getJwtSecret = () => {
+  const jwtSecret = requireRuntimeEnv('JWT_SECRET', env.jwtSecret);
+
+  if (env.isProductionRuntime && jwtSecret === 'replace_with_secure_secret') {
+    throw new Error('JWT_SECRET must be changed from the default placeholder in production');
+  }
+
+  return jwtSecret;
+};
 
 export const signToken = (payload) => {
-  return jwt.sign({ ...payload, serverSessionId }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: env.jwtExpiresIn });
 };
 
 export const verifyToken = (token) => {
-  const decoded = jwt.verify(token, env.jwtSecret);
-
-  if (decoded.serverSessionId !== serverSessionId) {
-    const error = new Error('Session expired');
-    error.name = 'JsonWebTokenError';
-    throw error;
-  }
-
-  return decoded;
+  return jwt.verify(token, getJwtSecret());
 };
