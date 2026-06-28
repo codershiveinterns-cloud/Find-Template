@@ -18,8 +18,11 @@ import { errorHandler, notFound } from './middleware/error.middleware.js';
 
 export const app = express();
 
+const vercelOrigin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+
 const allowedOrigins = [
   ...env.frontendUrls,
+  vercelOrigin,
   'http://localhost:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3000',
